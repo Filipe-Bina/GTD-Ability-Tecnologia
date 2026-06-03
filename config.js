@@ -1,0 +1,4 @@
+window.GTD_CONFIG = {
+  SUPABASE_URL: "https://yhcqbisdukcdarapjsku.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InloY3FiaXNkdWtjZGFyYXBqc2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDcxODEsImV4cCI6MjA5NjAyMzE4MX0.2F5BYVNk65NnrwsQGJTnmQp9sQbxZiU6NISriRAJ0Bc"
+};

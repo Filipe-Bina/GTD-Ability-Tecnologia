@@ -1,0 +1,8 @@
+{
+  "name": "gtd-ability-tecnologia",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node local-server.js"
+  }
+}
