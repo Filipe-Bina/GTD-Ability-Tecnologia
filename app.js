@@ -105,7 +105,10 @@ function refreshDatabaseClient() {
 }
 
 function createDatabaseClient() {
-  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+  const supabaseUrl = String(cfg.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const supabaseAnonKey = String(cfg.SUPABASE_ANON_KEY || "").trim();
+
+  if (!supabaseUrl || !supabaseAnonKey) {
     return {
       db: null,
       supabaseReady: false,
@@ -121,7 +124,14 @@ function createDatabaseClient() {
     };
   }
 
-  if (!/^https:\/\/.+\.supabase\.co\/?$/.test(cfg.SUPABASE_URL)) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(supabaseUrl);
+  } catch {
+    parsedUrl = null;
+  }
+
+  if (!parsedUrl || parsedUrl.protocol !== "https:" || !parsedUrl.hostname.endsWith(".supabase.co")) {
     return {
       db: null,
       supabaseReady: false,
@@ -131,7 +141,7 @@ function createDatabaseClient() {
 
   try {
     return {
-      db: window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY),
+      db: window.supabase.createClient(supabaseUrl, supabaseAnonKey),
       supabaseReady: true,
       setupError: ""
     };

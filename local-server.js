@@ -17,8 +17,8 @@ http.createServer((req, res) => {
 
   if (cleanPath === "/config.js") {
     const config = {
-      SUPABASE_URL: process.env.SUPABASE_URL || "",
-      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ""
+      SUPABASE_URL: String(process.env.SUPABASE_URL || "").trim(),
+      SUPABASE_ANON_KEY: String(process.env.SUPABASE_ANON_KEY || "").trim()
     };
 
     res.writeHead(200, {
