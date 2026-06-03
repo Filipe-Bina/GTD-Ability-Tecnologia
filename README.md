@@ -1,46 +1,55 @@
 # GTD-Ability Tecnologia
 
-Sistema web inicial para acesso dos técnicos, cadastro por RE autorizado, login, solicitações, busca de scripts e consulta de PDF de códigos de baixa.
+Sistema web inicial para acesso dos tecnicos, cadastro por RE autorizado, login, solicitacoes, busca de scripts e consulta de PDF de codigos de baixa.
 
-## Como abrir no Visual Studio
+## Rodar no computador
 
-1. Abra a pasta `app` no Visual Studio ou Visual Studio Code.
-2. Edite `config.js` com os dados do seu projeto Supabase.
-3. Abra `index.html` no navegador, ou use uma extensão de servidor local.
+1. Abra esta pasta no Visual Studio Code.
+2. Rode:
+
+```bash
+npm start
+```
+
+3. Acesse:
+
+```text
+http://localhost:4173
+```
 
 ## Configurar o Supabase
 
 1. Crie um projeto gratuito no Supabase.
 2. Abra o SQL Editor.
-3. Cole e execute todo o conteúdo do arquivo `supabase-schema.sql`.
+3. Cole e execute todo o conteudo do arquivo `supabase-schema.sql`.
 4. Em Project Settings > API, copie:
    - Project URL
    - anon public key
-5. Preencha o arquivo `config.js`.
 
-Exemplo:
+## Publicar no Render gratis
 
-```js
-window.GTD_CONFIG = {
-  SUPABASE_URL: "https://seu-projeto.supabase.co",
-  SUPABASE_ANON_KEY: "sua-chave-anon-publica"
-};
-```
+Crie um `Web Service` no Render usando Node.
 
-## Publicar no Render grátis
+Use estes campos:
 
-1. Suba a pasta do projeto para um repositório no GitHub.
-2. No Render, crie um novo `Static Site`.
-3. Selecione o repositório.
-4. Configure:
-   - Build Command: deixe vazio
-   - Publish Directory: `app`
-5. Publique.
+- Language: `Node`
+- Branch: `main`
+- Root Directory: deixe vazio
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Instance Type: `Free`
 
-## Códigos de baixa
+Em `Environment Variables`, adicione:
 
-Substitua o arquivo `assets/codigos-baixa.pdf` pelo PDF real com os códigos.
+- `SUPABASE_URL`: Project URL do Supabase, no formato `https://seu-projeto.supabase.co`
+- `SUPABASE_ANON_KEY`: chave `anon public` do Supabase
+
+Depois clique em `Deploy Web Service`.
+
+## Codigo de baixa
+
+Substitua o arquivo `assets/codigos-baixa.pdf` pelo PDF real com os codigos.
 
 ## Scripts
 
-Cadastre os scripts na tabela `scripts` do Supabase. O campo `router_model` é usado na busca e o campo `content` deve conter o texto do script.
+Cadastre os scripts na tabela `scripts` do Supabase. O campo `router_model` e usado na busca e o campo `content` deve conter o texto do script.

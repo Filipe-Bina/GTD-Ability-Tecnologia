@@ -14,6 +14,21 @@ const types = {
 
 http.createServer((req, res) => {
   const cleanPath = decodeURIComponent(req.url.split("?")[0]);
+
+  if (cleanPath === "/config.js") {
+    const config = {
+      SUPABASE_URL: process.env.SUPABASE_URL || "",
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ""
+    };
+
+    res.writeHead(200, {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate"
+    });
+    res.end(`window.GTD_CONFIG = ${JSON.stringify(config)};`);
+    return;
+  }
+
   const filePath = path.join(root, cleanPath === "/" ? "index.html" : cleanPath);
 
   if (!filePath.startsWith(root)) {
