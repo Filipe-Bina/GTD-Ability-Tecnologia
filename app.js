@@ -242,7 +242,8 @@ function renderAuthForm() {
 
 async function handleAuthSubmit(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   const re = String(form.get("re")).trim();
   const password = String(form.get("password")).trim();
   const message = document.querySelector("#auth-message");
@@ -262,30 +263,44 @@ async function handleAuthSubmit(event) {
     return;
   }
 
-  setFormBusy(event.currentTarget, true);
-  const rpcName = authMode === "login" ? "login_technician" : "register_technician";
-  const { data, error } = await db.rpc(rpcName, { p_re: re, p_password: password });
-  setFormBusy(event.currentTarget, false);
+  try {
+    setFormBusy(formElement, true);
+    const rpcName = authMode === "login" ? "login_technician" : "register_technician";
+    
+    const { data, error } = await db.rpc(rpcName, { p_re: re, p_password: password });
+    
+    setFormBusy(formElement, false);
 
-  if (error) {
-    showMessage(message, "error", error.message);
-    return;
+    if (error) {
+      showMessage(message, "error", `Erro no banco: ${error.message}`);
+      return;
+    }
+
+    if (!data?.ok) {
+      showMessage(message, "error", data?.message || "Não foi possível concluir a operação.");
+      return;
+    }
+
+    // Fluxo se o cadastro der certo:
+    if (authMode === "register") {
+      // 1. Altera o modo para login para preparar a interface
+      authMode = "login";
+      // 2. Redesenha a tela de autenticação limpa
+      renderAuth();
+      // 3. Exibe a mensagem de sucesso na tela de login
+      const newCtxMessage = document.querySelector("#auth-message");
+      showMessage(newCtxMessage, "ok", "Cadastro realizado com sucesso! Insira seus dados para entrar.");
+      return;
+    }
+
+    // Fluxo se o login der certo:
+    saveSession(data.user);
+    render();
+
+  } catch (catchError) {
+    setFormBusy(formElement, false);
+    showMessage(message, "error", `Erro inesperado na requisição: ${catchError.message}`);
   }
-
-  if (!data?.ok) {
-    showMessage(message, "error", data?.message || "Não foi possível concluir a operação.");
-    return;
-  }
-
-  if (authMode === "register") {
-    authMode = "login";
-    renderAuth();
-    showMessage(document.querySelector("#auth-message"), "ok", "Cadastro realizado. Agora faça login com seu RE e senha.");
-    return;
-  }
-
-  saveSession(data.user);
-  render();
 }
 
 function isValidPassword(password) {
