@@ -531,6 +531,7 @@ function renderScriptView() {
   document.querySelector("#script-form").addEventListener("submit", searchScript);
 }
 
+// Correção aplicada: busca defensiva limitando linhas antes de tratar o array do Supabase
 async function searchScript(event) {
   event.preventDefault();
   const result = document.querySelector("#script-result");
@@ -542,22 +543,22 @@ async function searchScript(event) {
     .from("scripts")
     .select("router_model,content")
     .ilike("router_model", `%${model}%`)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
     result.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
     return;
   }
 
-  if (!data) {
+  if (!data || data.length === 0) {
     result.innerHTML = `<div class="empty">Não encontrado.</div>`;
     return;
   }
 
+  const scriptData = data[0];
   result.innerHTML = `
-    <h3>${escapeHtml(data.router_model)}</h3>
-    <pre class="script-box">${escapeHtml(data.content)}</pre>
+    <h3>${escapeHtml(scriptData.router_model)}</h3>
+    <pre class="script-box">${escapeHtml(scriptData.content)}</pre>
   `;
 }
 
