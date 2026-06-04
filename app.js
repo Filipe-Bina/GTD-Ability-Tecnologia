@@ -77,7 +77,7 @@ let supabaseReady = false;
 let setupError = "";
 
 let session = readSession();
-let authMode = "login";
+let authMode = "login"; // login, register, reset
 let adminTabActive = "solicitacoes";
 
 render();
@@ -86,7 +86,7 @@ refreshDatabaseClient();
 window.addEventListener("supabase-ready", () => {
   refreshDatabaseClient();
   if (!session) {
-    renderAuthForm();
+    renderAuth();
   }
 });
 
@@ -139,229 +139,167 @@ function render() {
 }
 
 function renderAuth() {
-  const app = document.querySelector("#app");
-  
-  // Interface com 3 opções agora: Login, Primeiro Acesso e Redefinir Senha
   app.innerHTML = `
     <section class="auth-shell">
       <div class="auth-card">
         <header class="auth-header">
+          <div class="brand-badge">GTD</div>
           <h1>GTD-Ability Tecnologia</h1>
-          <p>Sistema de Gestão Operacional Integrado</p>
+          <p class="brand-sub">Sistema de Gestão Operacional Integrado</p>
         </header>
 
-        <nav class="auth-tabs">
-          <button class="tab-btn active" id="tab-login">Login</button>
-          <button class="tab-btn" id="tab-register">Primeiro Acesso</button>
-          <button class="tab-btn" id="tab-reset" style="color: var(--warning);">Esqueci a Senha</button>
+        <nav class="auth-tabs" role="tablist">
+          <button class="tab-btn ${authMode === 'login' ? 'active' : ''}" id="tab-login">Login</button>
+          <button class="tab-btn ${authMode === 'register' ? 'active' : ''}" id="tab-register">Primeiro Acesso</button>
+          <button class="tab-btn ${authMode === 'reset' ? 'active' : ''}" id="tab-reset">Esqueci a Senha</button>
         </nav>
 
-        <form class="form auth-form show" id="form-login">
-          <label>
-            Usuário (RE do Técnico ou CPF do Admin)
-            <input id="login-re" required inputmode="numeric" placeholder="Digite apenas números" />
-          </label>
-          <label>
-            Senha de Acesso
-            <input id="login-password" type="password" required placeholder="Digite sua senha" />
-          </label>
-          <div class="message" id="login-msg"></div>
-          <button class="primary-btn" type="submit">Entrar no Sistema</button>
-        </form>
+        <div class="auth-forms-container">
+          <form class="form auth-form ${authMode === 'login' ? 'show' : ''}" id="form-login">
+            <label>
+              Identificador (RE do Técnico ou CPF do Admin)
+              <input id="login-re" required inputmode="numeric" placeholder="Digite apenas números" />
+            </label>
+            <label>
+              Senha de Acesso
+              <input id="login-password" type="password" required placeholder="Digite sua senha de 8 dígitos" />
+            </label>
+            <div class="message" id="login-msg"></div>
+            <button class="primary-btn" type="submit">Entrar no Sistema</button>
+          </form>
 
-        <form class="form auth-form" id="form-register">
-          <p class="helper" style="margin-bottom: 12px;">Se for o seu primeiro acesso, informe o seu RE ou CPF pré-autorizado para criar sua senha.</p>
-          <label>
-            Identificador Autorizado (RE ou CPF)
-            <input id="register-re" required inputmode="numeric" placeholder="Digite apenas números" />
-          </label>
-          <label>
-            Crie sua Senha (Exatamente 8 dígitos: letras e números)
-            <input id="register-password" type="password" required maxlength="8" placeholder="Ex: gtd2026x" />
-          </label>
-          <div class="message" id="register-msg"></div>
-          <button class="primary-btn" type="submit">Cadastrar Senha e Ativar</button>
-        </form>
+          <form class="form auth-form ${authMode === 'register' ? 'show' : ''}" id="form-register">
+            <p class="helper">Informe o seu RE ou CPF pré-autorizado para criar sua senha de acesso.</p>
+            <label>
+              Identificador Autorizado (RE ou CPF)
+              <input id="register-re" required inputmode="numeric" placeholder="Digite apenas números" />
+            </label>
+            <label>
+              Crie sua Senha (8 caracteres com letras e números)
+              <input id="register-password" type="password" required maxlength="8" placeholder="Ex: gtd2026x" />
+            </label>
+            <div class="message" id="register-msg"></div>
+            <button class="primary-btn" type="submit">Cadastrar Senha e Ativar</button>
+          </form>
 
-        <form class="form auth-form" id="form-reset">
-          <p class="helper" style="margin-bottom: 12px; color: var(--warning);">Para redefinir sua senha, informe seus dados idênticos ao cadastro da empresa.</p>
-          <label>
-            Seu RE ou CPF cadastrado
-            <input id="self-reset-re" required inputmode="numeric" placeholder="Digite apenas números" />
-          </label>
-          <label>
-            Nome Completo (Como está registrado)
-            <input id="self-reset-name" required placeholder="Ex: JOÃO SILVA" />
-          </label>
-          <label>
-            Nova Senha (8 dígitos: letras e números)
-            <input id="self-reset-password" type="password" required maxlength="8" placeholder="Digite a nova senha" />
-          </label>
-          <div class="message" id="self-reset-msg"></div>
-          <button class="primary-btn" type="submit" style="background: var(--warning);">Redefinir e Gravar Senha</button>
-        </form>
-
+          <form class="form auth-form ${authMode === 'reset' ? 'show' : ''}" id="form-reset">
+            <p class="helper" style="color: #b45309;">Informe seus dados cadastrais exatos para redefinir sua senha.</p>
+            <label>
+              Seu RE ou CPF cadastrado
+              <input id="self-reset-re" required inputmode="numeric" placeholder="Digite apenas números" />
+            </label>
+            <label>
+              Nome Completo (Idêntico ao registro)
+              <input id="self-reset-name" required placeholder="Ex: FILIPE DE SOUZA SANTOS" />
+            </label>
+            <label>
+              Nova Senha (8 caracteres com letras e números)
+              <input id="self-reset-password" type="password" required maxlength="8" placeholder="Digite a nova senha" />
+            </label>
+            <div class="message" id="self-reset-msg"></div>
+            <button class="primary-btn" type="submit" style="background: #d97706;">Redefinir e Gravar Senha</button>
+          </form>
+        </div>
       </div>
     </section>
   `;
 
-  // Gerenciamento de alternância entre as Abas (Tabs)
-  const tabs = {
-    login: { btn: app.querySelector("#tab-login"), form: app.querySelector("#form-login") },
-    register: { btn: app.querySelector("#tab-register"), form: app.querySelector("#form-register") },
-    reset: { btn: app.querySelector("#tab-reset"), form: app.querySelector("#form-reset") }
-  };
+  // Mapeamento das Abas de Troca de Tela
+  const btnLogin = app.querySelector("#tab-login");
+  const btnRegister = app.querySelector("#tab-register");
+  const btnReset = app.querySelector("#tab-reset");
 
-  function switchTab(targetKey) {
-    Object.keys(tabs).forEach((key) => {
-      if (key === targetKey) {
-        tabs[key].btn.classList.add("active");
-        tabs[key].form.classList.add("show");
-      } else {
-        tabs[key].btn.classList.remove("active");
-        tabs[key].form.classList.remove("show");
-      }
-    });
+  if(btnLogin) btnLogin.addEventListener("click", () => { authMode = "login"; renderAuth(); });
+  if(btnRegister) btnRegister.addEventListener("click", () => { authMode = "register"; renderAuth(); });
+  if(btnReset) btnReset.addEventListener("click", () => { authMode = "reset"; renderAuth(); });
+
+  // Vinculação Inteligente dos Eventos de Formulário
+  const fLogin = app.querySelector("#form-login");
+  const fRegister = app.querySelector("#form-register");
+  const fReset = app.querySelector("#form-reset");
+
+  if (fLogin) fLogin.addEventListener("submit", handleLoginSubmit);
+  if (fRegister) fRegister.addEventListener("submit", handleRegisterSubmit);
+  if (fReset) fReset.addEventListener("submit", handleSelfResetSubmit);
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const re = app.querySelector("#login-re").value.trim().replace(/[^0-9]/g, "");
+  const password = app.querySelector("#login-password").value;
+  const msg = app.querySelector("#login-msg");
+
+  if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
+
+  setFormBusy(form, true);
+  const { data, error } = await db.rpc("login_user", { p_identificador: re, p_password: password });
+  setFormBusy(form, false);
+
+  if (error) {
+    showMessage(msg, "error", `Erro interno: ${error.message}`);
+  } else if (!data?.ok) {
+    showMessage(msg, "error", data?.message || "Usuário ou senha incorretos.");
+  } else {
+    saveSession(data.user); // Correção da chamada de setSession para saveSession
+    render();
   }
-
-  tabs.login.btn.addEventListener("click", () => switchTab("login"));
-  tabs.register.btn.addEventListener("click", () => switchTab("register"));
-  tabs.reset.btn.addEventListener("click", () => switchTab("reset"));
-
-  // EVENTO: Submissão do Login
-  app.querySelector("#form-login").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const re = app.querySelector("#login-re").value.trim().replace(/[^0-9]/g, "");
-    const password = app.querySelector("#login-password").value;
-    const msg = app.querySelector("#login-msg");
-
-    setFormBusy(form, true);
-    const { data, error } = await db.rpc("login_technician", { p_re: re, p_password: password });
-    setFormBusy(form, false);
-
-    if (error) {
-      showMessage(msg, "error", `Erro interno: ${error.message}`);
-    } else if (!data.ok) {
-      showMessage(msg, "error", data.message);
-    } else {
-      setSession(data.user);
-      render();
-    }
-  });
-
-  // EVENTO: Submissão do Primeiro Acesso
-  app.querySelector("#form-register").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const re = app.querySelector("#register-re").value.trim().replace(/[^0-9]/g, "");
-    const password = app.querySelector("#register-password").value;
-    const msg = app.querySelector("#register-msg");
-
-    setFormBusy(form, true);
-    const { data, error } = await db.rpc("register_technician_password", { p_re: re, p_password: password });
-    setFormBusy(form, false);
-
-    if (error) {
-      showMessage(msg, "error", `Erro interno: ${error.message}`);
-    } else if (!data.ok) {
-      showMessage(msg, "error", data.message);
-    } else {
-      alert("Cadastro realizado com sucesso! Faça o login agora.");
-      switchTab("login");
-    }
-  });
-
-  // EVENTO: Submissão da Auto-Redefinição de Senha
-  app.querySelector("#form-reset").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const re = app.querySelector("#self-reset-re").value.trim().replace(/[^0-9]/g, "");
-    const name = app.querySelector("#self-reset-name").value.trim();
-    const newPassword = app.querySelector("#self-reset-password").value;
-    const msg = app.querySelector("#self-reset-msg");
-
-    setFormBusy(form, true);
-    const { data, error } = await db.rpc("self_reset_password", { 
-      p_re: re, 
-      p_name: name, 
-      p_new_password: newPassword 
-    });
-    setFormBusy(form, false);
-
-    if (error) {
-      showMessage(msg, "error", `Erro interno: ${error.message}`);
-    } else if (!data.ok) {
-      showMessage(msg, "error", data.message);
-    } else {
-      alert("Sua senha foi redefinida com absoluto sucesso! Faça o login na aba ao lado.");
-      form.reset();
-      switchTab("login");
-    }
-  });
 }
 
-function renderAuthForm() {
-  const content = document.querySelector("#auth-content");
-  const isLogin = authMode === "login";
+async function handleRegisterSubmit(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const re = app.querySelector("#register-re").value.trim().replace(/[^0-9]/g, "");
+  const password = app.querySelector("#register-password").value;
+  const msg = app.querySelector("#register-msg");
 
-  content.innerHTML = `
-    <form class="form" id="auth-form">
-      <div>
-        <h2>${isLogin ? "Entrar no sistema" : "Primeiro acesso"}</h2>
-        <p class="helper">${isLogin ? "Informe seu Identificador e senha para acessar." : "O cadastro será aceito somente para RE ou CPF autorizado."}</p>
-      </div>
-      <label>
-        RE do Técnico ou CPF do Admin (somente números)
-        <input name="identificador" inputmode="numeric" required placeholder="Ex.: 35383 ou 35036423828" />
-      </label>
-      <label>
-        Senha
-        <input name="password" type="password" maxlength="8" required placeholder="8 caracteres com letra e número" />
-      </label>
-      <div class="message" id="auth-message"></div>
-      <button class="primary-btn" type="submit">${isLogin ? "Entrar" : "Cadastrar"}</button>
-    </form>
-  `;
-
-  document.querySelector("#auth-form").addEventListener("submit", handleAuthSubmit);
-}
-
-async function handleAuthSubmit(event) {
-  event.preventDefault();
-  const formElement = event.currentTarget;
-  const form = new FormData(formElement);
-  const identificador = String(form.get("identificador")).trim().replace(/[^0-9]/g, "");
-  const password = String(form.get("password")).trim();
-  const message = document.querySelector("#auth-message");
-
-  if (!supabaseReady) { showMessage(message, "error", setupError); return; }
-  if (authMode === "register" && !isValidPassword(password)) {
-    showMessage(message, "error", "A senha deve ter exatamente 8 caracteres, com letra e número.");
+  if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
+  if (!isValidPassword(password)) {
+    showMessage(msg, "error", "A senha deve ter exatamente 8 caracteres, contendo letras e números.");
     return;
   }
 
-  try {
-    setFormBusy(formElement, true);
-    const rpcName = authMode === "login" ? "login_user" : "register_user";
-    const { data, error } = await db.rpc(rpcName, { p_identificador: identificador, p_password: password });
-    setFormBusy(formElement, false);
+  setFormBusy(form, true);
+  const { data, error } = await db.rpc("register_user", { p_identificador: re, p_password: password });
+  setFormBusy(form, false);
 
-    if (error) { showMessage(message, "error", `Erro: ${error.message}`); return; }
-    if (!data?.ok) { showMessage(message, "error", data?.message || "Operação inválida."); return; }
+  if (error) {
+    showMessage(msg, "error", `Erro: ${error.message}`);
+  } else if (!data?.ok) {
+    showMessage(msg, "error", data?.message || "Não foi possível cadastrar.");
+  } else {
+    alert("Cadastro efetuado com sucesso! Faça login na aba ao lado.");
+    authMode = "login";
+    renderAuth();
+  }
+}
 
-    if (authMode === "register") {
-      authMode = "login";
-      renderAuth();
-      showMessage(document.querySelector("#auth-message"), "ok", "Cadastro realizado! Faça login agora.");
-      return;
-    }
+async function handleSelfResetSubmit(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const re = app.querySelector("#self-reset-re").value.trim().replace(/[^0-9]/g, "");
+  const name = app.querySelector("#self-reset-name").value.trim();
+  const newPassword = app.querySelector("#self-reset-password").value;
+  const msg = app.querySelector("#self-reset-msg");
 
-    saveSession(data.user);
-    render();
-  } catch (err) {
-    setFormBusy(formElement, false);
-    showMessage(message, "error", err.message);
+  if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
+
+  setFormBusy(form, true);
+  const { data, error } = await db.rpc("self_reset_password", { 
+    p_re: re, 
+    p_name: name, 
+    p_new_password: newPassword 
+  });
+  setFormBusy(form, false);
+
+  if (error) {
+    showMessage(msg, "error", `Erro interno: ${error.message}`);
+  } else if (!data?.ok) {
+    showMessage(msg, "error", data?.message);
+  } else {
+    alert("Sua senha foi redefinida com sucesso! Faça o login.");
+    authMode = "login";
+    renderAuth();
   }
 }
 
@@ -376,7 +314,7 @@ function topbar() {
         <div class="user-chip">
           <strong>${escapeHtml(session.name)}</strong>
           <span>ID: ${escapeHtml(session.re)} • ${escapeHtml(displayRole)}</span>
-          <button class="ghost-btn" id="logout">Sair</button>
+          <button class="ghost-btn" id="logout" style="width:auto; padding:4px 8px;">Sair</button>
         </div>
       </div>
     </header>
@@ -389,11 +327,11 @@ function renderTechnicianHome() {
     <section class="app-shell">
       ${topbar()}
       <main class="content">
-        <div class="section-head"><div><h2>Painel do Técnico</h2><p>Envie solicitações ou consulte scripts.</p></div></div>
+        <div class="section-head"><div><h2>Painel do Técnico</h2><p>Envie solicitações ou consulte scripts operacionais.</p></div></div>
         <section class="grid">${technicianActions.map(actionTile).join("")}</section>
-        <section class="panel" style="margin-top: 22px;">
-          <div class="section-head"><div><h2>Minhas solicitações</h2><p>Acompanhe o retorno do administrador.</p></div>
-          <button class="secondary-btn" id="refresh-requests">Atualizar</button></div>
+        <section class="panel" style="margin-top: 24px;">
+          <div class="section-head"><div><h2>Minhas solicitações</h2><p>Acompanhe o retorno e homologações em tempo real.</p></div>
+          <button class="secondary-btn" id="refresh-requests" style="width:auto;">Atualizar</button></div>
           <div id="request-list" class="request-list"></div>
         </section>
       </main>
@@ -429,7 +367,7 @@ function renderRequestForm(type) {
     <section class="app-shell">
       ${topbar()}
       <main class="content">
-        <div class="view-actions"><button class="secondary-btn" id="back-home">Voltar</button></div>
+        <div class="view-actions"><button class="secondary-btn" id="back-home" style="width:auto;">Voltar</button></div>
         <section class="panel">
           <form class="form" id="request-form">
             <div><h2>${escapeHtml(type.title)}</h2><p class="helper">${escapeHtml(type.subtitle)}</p></div>
@@ -498,11 +436,11 @@ function renderScriptView() {
     <section class="app-shell">
       ${topbar()}
       <main class="content">
-        <div class="view-actions"><button class="secondary-btn" id="back-home">Voltar</button></div>
+        <div class="view-actions"><button class="secondary-btn" id="back-home" style="width:auto;">Voltar</button></div>
         <section class="panel">
           <form class="form" id="script-form">
-            <div><h2>Buscar Script</h2><p class="helper">Digite o modelo do roteador.</p></div>
-            <label>Modelo<input name="model" required placeholder="Ex.: Huawei" /></label>
+            <div><h2>Buscar Script</h2><p class="helper">Digite o modelo do roteador para pesquisa.</p></div>
+            <label>Modelo do Roteador<input name="model" required placeholder="Ex.: Huawei" /></label>
             <button class="primary-btn" type="submit">Buscar</button>
           </form>
           <div id="script-result" class="script-result"></div>
@@ -532,7 +470,7 @@ function renderPdfView() {
   app.innerHTML = `
     <section class="app-shell">${topbar()}
       <main class="content">
-        <div class="view-actions"><button class="secondary-btn" id="back-home">Voltar</button></div>
+        <div class="view-actions"><button class="secondary-btn" id="back-home" style="width:auto;">Voltar</button></div>
         <section class="panel"><h2>Código de Baixa</h2><iframe class="pdf-frame" src="assets/codigos-baixa.pdf"></iframe></section>
       </main>
     </section>
@@ -541,7 +479,6 @@ function renderPdfView() {
   document.querySelector("#logout").addEventListener("click", () => { clearSession(); render(); });
 }
 
-
 /* ================= AREA DO ADMINISTRADOR ================= */
 function renderAdminHome() {
   const isMaster = session.role === "administrador_master";
@@ -549,13 +486,13 @@ function renderAdminHome() {
     <section class="app-shell">
       ${topbar()}
       <main class="content">
-        <div class="section-head"><div><h2>Painel Administrativo</h2><p>Gestão de solicitações e scripts do sistema.</p></div></div>
+        <div class="section-head"><div><h2>Painel Administrativo</h2><p>Gestão de solicitações operacionais e engenharia de scripts.</p></div></div>
         <div class="tabs" role="tablist">
-          <button class="tab ${adminTabActive === "solicitacoes" ? "active" : ""}" id="tab-sol">Solicitações Técnicas</button>
-          <button class="tab ${adminTabActive === "scripts" ? "active" : ""}" id="tab-scr">Cadastrar Script</button>
-          ${isMaster ? `<button class="tab ${adminTabActive === "usuarios" ? "active" : ""}" id="tab-usr">Controle de Usuários (Master)</button>` : ""}
+          <button class="tab ${adminTabActive === "solicitacoes" ? 'active' : ''}" id="tab-sol">Solicitações Técnicas</button>
+          <button class="tab ${adminTabActive === "scripts" ? 'active' : ''}" id="tab-scr">Cadastrar Script</button>
+          ${isMaster ? `<button class="tab ${adminTabActive === "usuarios" ? 'active' : ''}" id="tab-usr">Controle de Usuários</button>` : ""}
         </div>
-        <div id="admin-panel-content" style="margin-top:18px;"></div>
+        <div id="admin-panel-content" style="margin-top:20px;"></div>
       </main>
     </section>
   `;
@@ -574,11 +511,11 @@ function renderAdminHome() {
 
 async function renderAdminRequests() {
   const container = document.querySelector("#admin-panel-content");
-  container.innerHTML = `<div class="empty">Buscando solicitações dos técnicos...</div>`;
+  container.innerHTML = `<div class="empty">Buscando fila de solicitações dos técnicos...</div>`;
 
   const { data, error } = await db.from("requests").select("*").order("created_at", { ascending: false });
   if (error) { container.innerHTML = `<div class="empty">Erro: ${error.message}</div>`; return; }
-  if (!data.length) { container.innerHTML = `<div class="empty">Nenhuma solicitação no momento.</div>`; return; }
+  if (!data.length) { container.innerHTML = `<div class="empty">Nenhuma solicitação pendente na fila.</div>`; return; }
 
   container.innerHTML = `
     <div class="request-list">
@@ -586,19 +523,19 @@ async function renderAdminRequests() {
         const hasAction = req.status === "pendente";
         return `
           <div class="panel" style="border-left: 5px solid ${req.status === 'ok' ? 'var(--success)' : req.status === 'nao_ok' ? 'var(--danger)' : 'var(--warning)'}">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
-              <div>
-                <strong>${escapeHtml(req.title)} (${escapeHtml(req.type.toUpperCase())})</strong>
-                <p style="margin:6px 0;"><strong>Técnico:</strong> ${escapeHtml(req.technician_name)} (RE: ${escapeHtml(req.technician_re)})</p>
-                <p style="background:var(--surface-2); padding:10px; border-radius:6px; margin:6px 0;">"${escapeHtml(req.details)}"</p>
-                <small>${formatDate(req.created_at)} • Status atual: <strong>${req.status.toUpperCase()}</strong></small>
-                ${req.admin_response ? `<p style="margin:6px 0; color:var(--muted)"><strong>Resposta enviada:</strong> ${escapeHtml(req.admin_response)}</p>` : ""}
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+              <div style="flex:1; min-width:280px;">
+                <strong style="font-size:1.1rem; color:var(--text);">${escapeHtml(req.title)}</strong>
+                <p style="margin:4px 0; font-size:0.9rem;"><strong>Técnico:</strong> ${escapeHtml(req.technician_name)} (RE: ${escapeHtml(req.technician_re)})</p>
+                <p style="background:var(--surface-2); padding:12px; border-radius:8px; margin:8px 0; font-size:0.95rem; line-height:1.5;">"${escapeHtml(req.details)}"</p>
+                <small>${formatDate(req.created_at)} • Status: <strong style="color:${req.status==='ok'?'var(--success)':req.status==='nao_ok'?'var(--danger)':'var(--warning)'}">${req.status.toUpperCase()}</strong></small>
+                ${req.admin_response ? `<p style="margin:6px 0; color:var(--muted); font-size:0.9rem;"><strong>Resposta do Admin:</strong> ${escapeHtml(req.admin_response)}</p>` : ""}
               </div>
               ${hasAction ? `
-                <div style="display:grid; gap:8px; min-width:150px;">
-                  <input id="resp-${req.id}" placeholder="Escreva um feedback..." style="padding:6px; font-size:0.85rem;" />
-                  <button class="primary-btn" onclick="handleProcessRequest('${req.id}', 'ok')" style="min-height:32px; font-size:0.85rem;">Liberar / OK</button>
-                  <button class="secondary-btn" onclick="handleProcessRequest('${req.id}', 'nao_ok')" style="min-height:32px; font-size:0.85rem; color:var(--danger)">Recusar / Não OK</button>
+                <div style="display:grid; gap:8px; width:100%; max-width:220px;">
+                  <input id="resp-${req.id}" placeholder="Feedback complementar..." style="padding:8px;" />
+                  <button class="primary-btn" onclick="handleProcessRequest('${req.id}', 'ok')" style="min-height:36px; padding:6px;">Liberar / OK</button>
+                  <button class="secondary-btn" onclick="handleProcessRequest('${req.id}', 'nao_ok')" style="min-height:36px; padding:6px; color:var(--danger); border-color:var(--danger)">Recusar / Não OK</button>
                 </div>
               ` : ""}
             </div>
@@ -627,11 +564,11 @@ function renderAdminScriptsForm() {
   container.innerHTML = `
     <section class="panel">
       <form class="form" id="insert-script-form">
-        <div><h2>Cadastrar Script Técnico</h2><p class="helper">O arquivo ficará disponível na aba de pesquisas dos técnicos em formato .txt</p></div>
+        <div><h2>Cadastrar Script Técnico</h2><p class="helper">O script ficará instantaneamente disponível na pesquisa dos navegadores dos técnicos.</p></div>
         <label>Modelo do Roteador / Equipamento<input name="model" required placeholder="Ex.: Huawei EG8145V5" /></label>
-        <label>Conteúdo do Script (.txt)<textarea name="content" required placeholder="Cole a estrutura de comandos do script aqui..."></textarea></label>
+        <label>Comandos do Script (.txt)<textarea name="content" required placeholder="Cole o arquivo txt ou linhas de comando aqui..."></textarea></label>
         <div class="message" id="script-admin-message"></div>
-        <button class="primary-btn" type="submit">Publicar Script</button>
+        <button class="primary-btn" type="submit">Publicar Script no Banco</button>
       </form>
     </section>
   `;
@@ -649,7 +586,7 @@ function renderAdminScriptsForm() {
 
     if (error) { showMessage(msg, "error", error.message); return; }
     form.reset();
-    showMessage(msg, "ok", "Script cadastrado com sucesso no banco de dados.");
+    showMessage(msg, "ok", "Script gravado e disponibilizado com sucesso.");
   });
 }
 
@@ -665,7 +602,7 @@ function renderAdminUsersForm() {
       
       <div style="display: flex; gap: 10px; margin-bottom: 22px; max-width: 500px;">
         <input id="search-identificador" inputmode="numeric" placeholder="Digite RE ou CPF (somente números)" style="padding: 10px;" />
-        <button class="primary-btn" id="btn-search-user" style="min-width: 120px; min-height: 44px;">Consultar</button>
+        <button class="primary-btn" id="btn-search-user" style="min-width: 120px; min-height: 44px; width:auto;">Consultar</button>
       </div>
 
       <div id="management-workarea">
@@ -678,10 +615,7 @@ function renderAdminUsersForm() {
     const identificador = document.querySelector("#search-identificador").value.trim().replace(/[^0-9]/g, "");
     const workarea = document.querySelector("#management-workarea");
 
-    if (!identificador) {
-      alert("Por favor, informe o RE ou CPF.");
-      return;
-    }
+    if (!identificador) { alert("Por favor, informe o RE ou CPF."); return; }
 
     workarea.innerHTML = `<div class="empty">Consultando base de dados do Supabase...</div>`;
 
@@ -708,7 +642,7 @@ function renderAdminUsersForm() {
       }
 
       workarea.innerHTML = `
-        <div class="badge ${alertClass}" style="margin-bottom: 16px; font-size: 0.85rem; padding: 6px 12px;">
+        <div class="badge ${alertClass}" style="margin-bottom: 16px; font-size: 0.85rem; padding: 6px 12px; border-radius:4px;">
           Status: ${statusLabel}
         </div>
 
@@ -735,13 +669,13 @@ function renderAdminUsersForm() {
             </button>
             
             ${data.status === 'cadastrado' ? `
-              <button class="secondary-btn" type="button" id="btn-reset-password" style="color: var(--warning); border-color: var(--warning); min-width: 160px;">
+              <button class="secondary-btn" type="button" id="btn-reset-password" style="color: var(--warning); border-color: var(--warning); min-width: 160px; width:auto;">
                 Resetar Senha
               </button>
             ` : ""}
             
             ${data.status !== 'nao_autorizado' ? `
-              <button class="secondary-btn" type="button" id="btn-delete-user" style="color: var(--danger); border-color: var(--danger); min-width: 160px;">
+              <button class="secondary-btn" type="button" id="btn-delete-user" style="color: var(--danger); border-color: var(--danger); min-width: 160px; width:auto;">
                 Excluir Definitivamente
               </button>
             ` : ""}
@@ -749,7 +683,7 @@ function renderAdminUsersForm() {
         </form>
       `;
 
-      // Evento de Gravação / Atualização
+      // Mutation Submit Logic
       document.querySelector("#user-mutation-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -778,65 +712,47 @@ function renderAdminUsersForm() {
         }
 
         setFormBusy(form, false);
-        if (saveError) {
-          showMessage(msg, "error", `Erro ao salvar: ${saveError.message}`);
-        } else {
-          showMessage(msg, "ok", "Alterações gravadas com sucesso!");
-          setTimeout(renderAdminUsersForm, 1500);
-        }
+        if (saveError) { showMessage(msg, "error", `Erro: ${saveError.message}`); } 
+        else { showMessage(msg, "ok", "Gravado com sucesso!"); setTimeout(renderAdminUsersForm, 1200); }
       });
 
-      // Evento de Reset pelo Admin Master
+      // Master Reset Action
       if (data.status === "cadastrado") {
         document.querySelector("#btn-reset-password").addEventListener("click", async () => {
-          if (!confirm(`Deseja forçar o RESET da senha do usuário ${identificador}?\nEle será desconectado e precisará cadastrar uma nova senha no próximo acesso.`)) {
-            return;
-          }
+          if (!confirm(`Deseja resetar a senha do usuário ${identificador}?`)) return;
           const form = document.querySelector("#user-mutation-form");
           setFormBusy(form, true);
 
           const { error } = await db.rpc("reset_user_password", { p_identificador: identificador });
           setFormBusy(form, false);
 
-          if (error) {
-            alert(`Erro ao resetar: ${error.message}`);
-          } else {
-            alert("Senha limpa com sucesso! O usuário voltou para o estado de primeiro acesso.");
-            renderAdminUsersForm();
-          }
+          if (error) { alert(`Erro: ${error.message}`); } 
+          else { alert("Senha resetada! Liberado para novo registro."); renderAdminUsersForm(); }
         });
       }
 
-      // Evento de Exclusão Definitiva
+      // Expunge Delete Action
       if (data.status !== "nao_autorizado") {
         document.querySelector("#btn-delete-user").addEventListener("click", async () => {
-          if (!confirm(`ATENÇÃO:\nTem certeza que deseja apagar DEFINITIVAMENTE o ID ${identificador} do sistema?`)) {
-            return;
-          }
+          if (!confirm(`Tem certeza que deseja apagar DEFINITIVAMENTE o ID ${identificador}?`)) return;
           const form = document.querySelector("#user-mutation-form");
           setFormBusy(form, true);
 
           const { error } = await db.rpc("delete_user_completely", { p_identificador: identificador });
           setFormBusy(form, false);
 
-          if (error) {
-            alert(`Erro ao deletar: ${error.message}`);
-          } else {
-            alert("Usuário totalmente removido!");
-            renderAdminUsersForm();
-          }
+          if (error) { alert(`Erro: ${error.message}`); } 
+          else { alert("Expurgado com sucesso!"); renderAdminUsersForm(); }
         });
       }
 
-    } catch (err) {
-      workarea.innerHTML = `<div class="message show error">Erro na execução: ${err.message}</div>`;
-    }
+    } catch (err) { workarea.innerHTML = `<div class="message show error">Falha: ${err.message}</div>`; }
   });
 }
 
-/* ================= AUXILIARES DE SUPORTE ================= */
+/* ================= AUXILIARES ================= */
 function showMessage(element, type, text) { element.className = `message show ${type}`; element.textContent = text; }
-function setFormBusy(form, busy) { form.querySelectorAll("button, input, textarea").forEach(f => f.disabled = busy); }
+function setFormBusy(form, busy) { form.querySelectorAll("button, input, textarea, select").forEach(f => f.disabled = busy); }
 function labelStatus(status) { const labels = { pendente: "Pendente", ok: "OK", nao_ok: "Não OK" }; return labels[status] || status; }
 function formatDate(v) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(v)); }
 function escapeHtml(v) { return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
