@@ -314,7 +314,7 @@ function topbar() {
   return `
     <header class="topbar">
       <div class="topbar-inner">
-        <div class="app-title"><span class="mini-mark">GTD</span> Ability Tecnologia</div>
+        <div class="app-title"><span class="mini-mark"></span> Ability Tecnologia</div>
         <div class="user-chip">
           <strong>${escapeHtml(session.name)}</strong>
           <span>ID: ${escapeHtml(session.re)} • ${escapeHtml(displayRole)}</span>
