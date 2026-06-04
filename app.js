@@ -77,7 +77,7 @@ let supabaseReady = false;
 let setupError = "";
 
 let session = readSession();
-let authMode = "login"; 
+let authMode = "login"; // login, register, reset
 let adminTabActive = "solicitacoes";
 
 render();
@@ -162,7 +162,7 @@ function renderAuth() {
             </label>
             <label>
               Senha de Acesso
-              <input id="login-password" type="password" required placeholder="Digite sua senha" />
+              <input id="login-password" type="password" required placeholder="Digite sua senha de 8 dígitos" />
             </label>
             <div class="message" id="login-msg"></div>
             <button class="primary-btn" type="submit">Entrar no Sistema</button>
@@ -183,13 +183,13 @@ function renderAuth() {
           </form>
 
           <form class="form auth-form ${authMode === 'reset' ? 'show' : ''}" id="form-reset">
-            <p class="helper" style="color: #b45309;">Informe seus dados cadastrais exatos para redefinir a credencial.</p>
+            <p class="helper" style="color: #b45309;">Informe seus dados cadastrais exatos para redefinir a sua senha.</p>
             <label>
               Seu RE ou CPF cadastrado
               <input id="self-reset-re" required inputmode="numeric" placeholder="Apenas números" />
             </label>
             <label>
-              Nome Completo (Como está registrado)
+              Nome Completo (Idêntico ao registro)
               <input id="self-reset-name" required placeholder="Ex: FILIPE DE SOUZA SANTOS" />
             </label>
             <label>
@@ -227,7 +227,6 @@ async function handleLoginSubmit(e) {
   if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
 
   setFormBusy(form, true);
-  // Alinhado para invocar 'login_user' mapeado no banco
   const { data, error } = await db.rpc("login_user", { p_identificador: re, p_password: password });
   setFormBusy(form, false);
 
@@ -255,7 +254,6 @@ async function handleRegisterSubmit(e) {
   }
 
   setFormBusy(form, true);
-  // Alinhado para invocar 'register_user' mapeado no banco
   const { data, error } = await db.rpc("register_user", { p_identificador: re, p_password: password });
   setFormBusy(form, false);
 
@@ -281,7 +279,7 @@ async function handleSelfResetSubmit(e) {
   if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
 
   setFormBusy(form, true);
-  // Alinhado para invocar 'self_reset_password' mapeado no banco
+  // Alinhamento sênior perfeito: Passando os 3 parâmetros exigidos pela RPC atualizada
   const { data, error } = await db.rpc("self_reset_password", { 
     p_re: re, 
     p_name: name, 
@@ -294,7 +292,7 @@ async function handleSelfResetSubmit(e) {
   } else if (!data?.ok) {
     showMessage(msg, "error", data?.message);
   } else {
-    alert("Senha redefinida com sucesso! Proceda com o login.");
+    alert("Senha redefinida com sucesso! Faça o seu login.");
     authMode = "login";
     renderAuth();
   }
@@ -512,7 +510,7 @@ async function renderAdminRequests() {
 
   const { data, error } = await db.from("requests").select("*").order("created_at", { ascending: false });
   if (error) { container.innerHTML = `<div class="empty">Erro: ${error.message}</div>`; return; }
-  if (!data.length) { container.innerHTML = `<div class="empty">Nenhuma solicitação pendente na fila.</div>`; return; }
+  if (!data.length) { container.innerHTML = `<div class="empty">Nenhuma solicitações pendente na fila.</div>`; return; }
 
   container.innerHTML = `
     <div class="request-list">
