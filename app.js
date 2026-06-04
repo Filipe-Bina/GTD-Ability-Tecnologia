@@ -55,12 +55,12 @@ const requestTypes = [
   },
   {
     key: "correcao_excecao",
-    title: "Solicitar Correção de Exceção",
+    title: "Solicitar Mudança de Exceção",
     subtitle: "Enviar correção necessária e motivo.",
     label: "Correção e motivo",
     placeholder: "Descreva a correção de exceção e o motivo",
     button: "Enviar solicitação",
-    success: "Solicitação de correção de exceção enviada para validação."
+    success: "Solicitação de correção enviada para validação."
   }
 ];
 
@@ -77,7 +77,7 @@ let supabaseReady = false;
 let setupError = "";
 
 let session = readSession();
-let authMode = "login"; // login, register, reset
+let authMode = "login"; 
 let adminTabActive = "solicitacoes";
 
 render();
@@ -102,7 +102,7 @@ function createDatabaseClient() {
   const supabaseAnonKey = String(cfg.SUPABASE_ANON_KEY || "").trim();
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return { db: null, supabaseReady: false, setupError: "Configure o Supabase no arquivo config.js." };
+    return { db: null, supabaseReady: false, setupError: "Configure as variáveis do Supabase." };
   }
   if (!window.supabase) {
     return { db: null, supabaseReady: false, setupError: "Biblioteca do Supabase ausente." };
@@ -158,21 +158,21 @@ function renderAuth() {
           <form class="form auth-form ${authMode === 'login' ? 'show' : ''}" id="form-login">
             <label>
               Identificador (RE do Técnico ou CPF do Admin)
-              <input id="login-re" required inputmode="numeric" placeholder="Digite apenas números" />
+              <input id="login-re" required inputmode="numeric" placeholder="Apenas números" />
             </label>
             <label>
               Senha de Acesso
-              <input id="login-password" type="password" required placeholder="Digite sua senha de 8 dígitos" />
+              <input id="login-password" type="password" required placeholder="Digite sua senha" />
             </label>
             <div class="message" id="login-msg"></div>
             <button class="primary-btn" type="submit">Entrar no Sistema</button>
           </form>
 
           <form class="form auth-form ${authMode === 'register' ? 'show' : ''}" id="form-register">
-            <p class="helper">Informe o seu RE ou CPF pré-autorizado para criar sua senha de acesso.</p>
+            <p class="helper">Informe seu RE ou CPF pré-autorizado para criar sua senha de acesso.</p>
             <label>
               Identificador Autorizado (RE ou CPF)
-              <input id="register-re" required inputmode="numeric" placeholder="Digite apenas números" />
+              <input id="register-re" required inputmode="numeric" placeholder="Apenas números" />
             </label>
             <label>
               Crie sua Senha (8 caracteres com letras e números)
@@ -183,13 +183,13 @@ function renderAuth() {
           </form>
 
           <form class="form auth-form ${authMode === 'reset' ? 'show' : ''}" id="form-reset">
-            <p class="helper" style="color: #b45309;">Informe seus dados cadastrais exatos para redefinir sua senha.</p>
+            <p class="helper" style="color: #b45309;">Informe seus dados cadastrais exatos para redefinir a credencial.</p>
             <label>
               Seu RE ou CPF cadastrado
-              <input id="self-reset-re" required inputmode="numeric" placeholder="Digite apenas números" />
+              <input id="self-reset-re" required inputmode="numeric" placeholder="Apenas números" />
             </label>
             <label>
-              Nome Completo (Idêntico ao registro)
+              Nome Completo (Como está registrado)
               <input id="self-reset-name" required placeholder="Ex: FILIPE DE SOUZA SANTOS" />
             </label>
             <label>
@@ -197,23 +197,17 @@ function renderAuth() {
               <input id="self-reset-password" type="password" required maxlength="8" placeholder="Digite a nova senha" />
             </label>
             <div class="message" id="self-reset-msg"></div>
-            <button class="primary-btn" type="submit" style="background: #d97706;">Redefinir e Gravar Senha</button>
+            <button class="primary-btn" type="submit" style="background: #d97706;">Gravar Nova Senha</button>
           </form>
         </div>
       </div>
     </section>
   `;
 
-  // Mapeamento das Abas de Troca de Tela
-  const btnLogin = app.querySelector("#tab-login");
-  const btnRegister = app.querySelector("#tab-register");
-  const btnReset = app.querySelector("#tab-reset");
+  app.querySelector("#tab-login").addEventListener("click", () => { authMode = "login"; renderAuth(); });
+  app.querySelector("#tab-register").addEventListener("click", () => { authMode = "register"; renderAuth(); });
+  app.querySelector("#tab-reset").addEventListener("click", () => { authMode = "reset"; renderAuth(); });
 
-  if(btnLogin) btnLogin.addEventListener("click", () => { authMode = "login"; renderAuth(); });
-  if(btnRegister) btnRegister.addEventListener("click", () => { authMode = "register"; renderAuth(); });
-  if(btnReset) btnReset.addEventListener("click", () => { authMode = "reset"; renderAuth(); });
-
-  // Vinculação Inteligente dos Eventos de Formulário
   const fLogin = app.querySelector("#form-login");
   const fRegister = app.querySelector("#form-register");
   const fReset = app.querySelector("#form-reset");
@@ -233,15 +227,16 @@ async function handleLoginSubmit(e) {
   if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
 
   setFormBusy(form, true);
+  // Alinhado para invocar 'login_user' mapeado no banco
   const { data, error } = await db.rpc("login_user", { p_identificador: re, p_password: password });
   setFormBusy(form, false);
 
   if (error) {
-    showMessage(msg, "error", `Erro interno: ${error.message}`);
+    showMessage(msg, "error", `Erro: ${error.message}`);
   } else if (!data?.ok) {
-    showMessage(msg, "error", data?.message || "Usuário ou senha incorretos.");
+    showMessage(msg, "error", data?.message || "Identificador ou senha inválidos.");
   } else {
-    saveSession(data.user); // Correção da chamada de setSession para saveSession
+    saveSession(data.user);
     render();
   }
 }
@@ -260,6 +255,7 @@ async function handleRegisterSubmit(e) {
   }
 
   setFormBusy(form, true);
+  // Alinhado para invocar 'register_user' mapeado no banco
   const { data, error } = await db.rpc("register_user", { p_identificador: re, p_password: password });
   setFormBusy(form, false);
 
@@ -268,7 +264,7 @@ async function handleRegisterSubmit(e) {
   } else if (!data?.ok) {
     showMessage(msg, "error", data?.message || "Não foi possível cadastrar.");
   } else {
-    alert("Cadastro efetuado com sucesso! Faça login na aba ao lado.");
+    alert("Cadastro efetuado! Faça login na aba ao lado.");
     authMode = "login";
     renderAuth();
   }
@@ -285,6 +281,7 @@ async function handleSelfResetSubmit(e) {
   if (!supabaseReady) { showMessage(msg, "error", setupError); return; }
 
   setFormBusy(form, true);
+  // Alinhado para invocar 'self_reset_password' mapeado no banco
   const { data, error } = await db.rpc("self_reset_password", { 
     p_re: re, 
     p_name: name, 
@@ -293,11 +290,11 @@ async function handleSelfResetSubmit(e) {
   setFormBusy(form, false);
 
   if (error) {
-    showMessage(msg, "error", `Erro interno: ${error.message}`);
+    showMessage(msg, "error", `Erro: ${error.message}`);
   } else if (!data?.ok) {
     showMessage(msg, "error", data?.message);
   } else {
-    alert("Sua senha foi redefinida com sucesso! Faça o login.");
+    alert("Senha redefinida com sucesso! Proceda com o login.");
     authMode = "login";
     renderAuth();
   }
@@ -683,7 +680,6 @@ function renderAdminUsersForm() {
         </form>
       `;
 
-      // Mutation Submit Logic
       document.querySelector("#user-mutation-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -716,7 +712,6 @@ function renderAdminUsersForm() {
         else { showMessage(msg, "ok", "Gravado com sucesso!"); setTimeout(renderAdminUsersForm, 1200); }
       });
 
-      // Master Reset Action
       if (data.status === "cadastrado") {
         document.querySelector("#btn-reset-password").addEventListener("click", async () => {
           if (!confirm(`Deseja resetar a senha do usuário ${identificador}?`)) return;
@@ -731,7 +726,6 @@ function renderAdminUsersForm() {
         });
       }
 
-      // Expunge Delete Action
       if (data.status !== "nao_autorizado") {
         document.querySelector("#btn-delete-user").addEventListener("click", async () => {
           if (!confirm(`Tem certeza que deseja apagar DEFINITIVAMENTE o ID ${identificador}?`)) return;
