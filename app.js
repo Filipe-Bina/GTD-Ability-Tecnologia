@@ -132,7 +132,6 @@ function clearSession() {
   localStorage.removeItem("gtd_session");
 }
 
-// Lógica de áudio para alertas nativos sem arquivos externos (Oscillator API)
 function playNotificationSound(type) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -153,13 +152,11 @@ function playNotificationSound(type) {
   } catch (e) { console.log("Áudio bloqueado pelo navegador."); }
 }
 
-// Gerenciador de Escuta em Tempo Real (Realtime Webhooks)
 function initRealtimeBroadcasting() {
   if (!db || !session || realtimeChannel) return;
 
   realtimeChannel = db.channel("gtd-realtime-system")
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "requests" }, payload => {
-      // Alerta para o Administrador sobre novas entradas na fila
       if (session.role === "administrador" || session.role === "administrador_master") {
         playNotificationSound('high');
         alert(`🔔 NOVA SOLICITAÇÃO!\nO técnico ${payload.new.technician_name} enviou um chamado de ${payload.new.title}.`);
@@ -167,15 +164,18 @@ function initRealtimeBroadcasting() {
       }
     })
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "requests" }, payload => {
-      // Alerta para o Técnico quando sua solicitação for alterada
       if (session.role === "tecnico" && payload.new.technician_re === session.re) {
-        playNotificationSound('low');
-        alert(`✉️ SOLICITAÇÃO RESPONDIDA!\nSeu pedido de "${payload.new.title}" foi atualizado para status: ${payload.new.status.toUpperCase()}.`);
+        if (payload.new.status !== 'arquivado') {
+          playNotificationSound('low');
+          alert(`✉️ SOLICITAÇÃO RESPONDIDA!\nSeu pedido de "${payload.new.title}" foi respondido pelo Administrador.`);
+        }
         loadRequests();
+      }
+      if (session.role === "administrador" || session.role === "administrador_master") {
+        renderAdminRequests(); 
       }
     })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "announcements" }, payload => {
-      // Atualiza o painel de letreiros de aviso na hora
       if (payload.new.target_type === "todos" || payload.new.target_re === session.re) {
         playNotificationSound('low');
         loadRecentAnnouncements();
@@ -314,7 +314,7 @@ function topbar() {
   return `
     <header class="topbar">
       <div class="topbar-inner">
-        <div class="app-title"><span class="mini-mark"></span> Ability Tecnologia</div>
+        <div class="app-title"><span class="mini-mark">GTD</span> Ability Tecnologia</div>
         <div class="user-chip">
           <strong>${escapeHtml(session.name)}</strong>
           <span>ID: ${escapeHtml(session.re)} • ${escapeHtml(displayRole)}</span>
@@ -330,14 +330,14 @@ function renderTechnicianHome() {
   app.innerHTML = `
     <section class="app-shell">
       ${topbar()}
-      <div id="mural-avisos-ticker" style="background:#fff3cd; border-bottom:1px solid #ffeeba; padding:10px 20px; overflow:hidden; font-size:0.9rem; font-weight:600; color:#856404;">
-        <div id="ticker-content">Carregando avisos operacionais...</div>
+      <div id="mural-avisos-ticker" style="background:#fff3cd; border-bottom:1px solid #ffeeba; padding:12px 20px; font-size:0.9rem; font-weight:600; color:#856404;">
+        <div id="ticker-container-area" style="display:flex; flex-direction:column; gap:8px;">Carregando avisos operacionais...</div>
       </div>
       <main class="content">
         <div class="section-head"><div><h2>Painel do Técnico</h2><p>Envie solicitações ou consulte scripts operacionais.</p></div></div>
         <section class="grid">${technicianActions.map(actionTile).join("")}</section>
         <section class="panel" style="margin-top: 24px;">
-          <div class="section-head"><div><h2>Minhas solicitações</h2><p>Acompanhe o retorno e homologações em tempo real.</p></div>
+          <div class="section-head"><div><h2>Minhas solicitações em aberto</h2><p>Acompanhe e valide o retorno do administrador.</p></div>
           <button class="secondary-btn" id="refresh-requests" style="width:auto;">Atualizar</button></div>
           <div id="request-list" class="request-list"></div>
         </section>
@@ -351,25 +351,50 @@ function renderTechnicianHome() {
 }
 
 async function loadRecentAnnouncements() {
-  const ticker = document.querySelector("#ticker-content");
-  if (!ticker) return;
+  const containerArea = document.querySelector("#ticker-container-area");
+  if (!containerArea) return;
 
-  const { data, error } = await db.from("announcements")
+  const { data: announcements, error: errAnn } = await db.from("announcements")
     .select("*")
     .or(`target_type.eq.todos,target_re.eq.${session.re}`)
-    .order("created_at", { ascending: false })
-    .limit(5);
+    .order("created_at", { ascending: false });
 
-  if (error || !data.length) {
-    ticker.innerHTML = "📢 Nenhum aviso importante pendente na mesa hoje.";
+  if (errAnn || !announcements.length) {
+    containerArea.innerHTML = "<div>📢 Nenhum aviso importante pendente na mesa hoje.</div>";
     return;
   }
 
-  ticker.innerHTML = data.map(aviso => {
-    const prefix = aviso.target_type === 'especifico' ? '🔒 [EXCLUSIVO PARA VOCÊ]' : '📢 [GERAL]';
-    return `${prefix} ${escapeHtml(aviso.content)} (${formatDate(aviso.created_at)})`;
-  }).join(" &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;&nbsp;&nbsp;&nbsp; ");
+  const { data: readLogs } = await db.from("announcement_acknowledgments")
+    .select("announcement_id")
+    .eq("technician_re", session.re);
+
+  const readIds = (readLogs || []).map(l => l.announcement_id);
+  const unreadAnnouncements = announcements.filter(a => !readIds.includes(a.id));
+
+  if (!unreadAnnouncements.length) {
+    containerArea.innerHTML = "<div>✅ Você já visualizou todos os comunicados operacionais recentes.</div>";
+    return;
+  }
+
+  containerArea.innerHTML = unreadAnnouncements.map(aviso => {
+    const prefix = aviso.target_type === 'especifico' ? '🔒 [Aviso Direcionado]' : '📢 [Aviso Geral]';
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.6); padding:8px 12px; border-radius:6px; border:1px solid rgba(133,100,4,0.15);">
+        <span style="line-height:1.4;"><strong>${prefix}</strong> ${escapeHtml(aviso.content)} <small style="font-weight:normal; color:var(--muted); margin-left:6px;">(${formatDate(aviso.created_at)})</small></span>
+        <button class="primary-btn" onclick="handleAckAnnouncement('${aviso.id}')" style="min-height:24px; padding:2px 8px; font-size:0.75rem; background:#d97706; width:auto; font-weight:700;">Ok, Lido</button>
+      </div>
+    `;
+  }).join("");
 }
+
+window.handleAckAnnouncement = async function(id) {
+  const { error } = await db.from("announcement_acknowledgments").insert({
+    announcement_id: id,
+    technician_re: session.re
+  });
+  if (error) { alert(`Erro ao registrar leitura: ${error.message}`); return; }
+  loadRecentAnnouncements();
+};
 
 function attachCommonEvents() {
   document.querySelectorAll("[data-action]").forEach(b => b.addEventListener("click", () => openAction(b.dataset.action)));
@@ -441,24 +466,41 @@ async function submitRequest(event, type) {
 async function loadRequests() {
   const list = document.querySelector("#request-list");
   list.innerHTML = `<div class="empty">Carregando solicitações...</div>`;
-  const { data, error } = await db.from("requests").select("*").eq("technician_re", session.re).order("created_at", { ascending: false });
+  
+  const { data, error } = await db.from("requests")
+    .select("*")
+    .eq("technician_re", session.re)
+    .neq("status", "arquivado")
+    .order("created_at", { ascending: false });
+
   if (error) { list.innerHTML = `<div class="empty">${error.message}</div>`; return; }
-  if (!data.length) { list.innerHTML = `<div class="empty">Nenhuma solicitação enviada.</div>`; return; }
+  if (!data.length) { list.innerHTML = `<div class="empty">Nenhuma notificação ou chamado pendente.</div>`; return; }
 
   list.innerHTML = data.map(item => {
+    const isAnswered = item.status === "ok" || item.status === "nao_ok";
     const badgeClass = item.status === "ok" ? "done" : item.status === "nao_ok" ? "denied" : "pending";
+    
     return `
-      <article class="request-item">
-        <div>
-          <strong>${escapeHtml(item.title)}</strong>
-          <p>${escapeHtml(item.admin_response || "Aguardando resposta do administrador.")}</p>
-          <small>${formatDate(item.created_at)}</small>
+      <article class="request-item" style="display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:#fff;">
+        <div style="flex:1;">
+          <strong style="color:var(--text); font-size:1rem;">${escapeHtml(item.title)}</strong>
+          <p style="margin:4px 0; color:var(--muted); font-size:0.9rem;">${escapeHtml(item.admin_response || "Aguardando posicionamento do administrador.")}</p>
+          <small style="color:var(--muted); font-size:0.8rem;">${formatDate(item.created_at)}</small>
         </div>
-        <span class="badge ${badgeClass}">${escapeHtml(labelStatus(item.status))}</span>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          <span class="badge ${badgeClass}">${escapeHtml(labelStatus(item.status))}</span>
+          ${isAnswered ? `<button class="primary-btn" onclick="handleArchiveRequest('${item.id}')" style="min-height:28px; padding:2px 10px; font-size:0.8rem; background:var(--muted); width:auto;">Ciente / OK</button>` : ""}
+        </div>
       </article>
     `;
   }).join("");
 }
+
+window.handleArchiveRequest = async function(id) {
+  const { error } = await db.from("requests").update({ status: "arquivado" }).eq("id", id);
+  if (error) { alert(`Erro ao finalizar notificação: ${error.message}`); return; }
+  loadRequests();
+};
 
 function renderScriptView() {
   app.innerHTML = `
@@ -541,6 +583,7 @@ function renderAdminHome() {
   if (adminTabActive === "usuarios") renderAdminUsersForm();
 }
 
+// ATUALIZAÇÃO SÊNIOR: Renderização estilo Kanban fatiada em 3 colunas por Categoria [cite: 481, 512, 513]
 async function renderAdminRequests() {
   const container = document.querySelector("#admin-panel-content");
   container.innerHTML = `<div class="empty">Buscando fila de solicitações dos técnicos...</div>`;
@@ -567,47 +610,85 @@ async function renderAdminRequests() {
   }, {});
 
   container.innerHTML = `
-    <div style="display: grid; gap: 24px;">
+    <div style="display: grid; gap: 32px;">
       ${Object.keys(groupedRequests).map(categoryKey => {
         const requestsInCat = groupedRequests[categoryKey];
         const meta = categoryMeta[categoryKey] || { title: `📂 ${categoryKey.toUpperCase()}`, color: "#64748b" };
-        const pendingCount = requestsInCat.filter(r => r.status === "pendente").length;
-        const pendingBadge = pendingCount > 0 
-          ? `<span style="background:${meta.color}; color:#fff; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700; margin-left:8px;">${pendingCount} pendente(s)</span>` 
-          : `<span style="background:var(--surface-2); color:var(--muted); padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:500; margin-left:8px;">Concluído</span>`;
+        
+        // Fatiamento dos arrays internos para distribuição nas 3 colunas Kanban
+        const colPendente = requestsInCat.filter(r => r.status === "pendente");
+        const colConcluido = requestsInCat.filter(r => r.status === "ok" || r.status === "nao_ok");
+        const colLido = requestsInCat.filter(r => r.status === "arquivado");
 
         return `
           <div class="category-block" style="border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow:hidden; box-shadow: var(--shadow-sm);">
-            <div style="background: var(--surface-2); padding: 14px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text);">${meta.title} ${pendingBadge}</h3>
-              <small style="color:var(--muted); font-weight:500;">Total: ${requestsInCat.length}</small>
+            
+            <div style="background: var(--surface-2); padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text);">${meta.title}</h3>
+              <small style="color:var(--muted); font-weight:600;">Total na Categoria: ${requestsInCat.length}</small>
             </div>
-            <div style="padding: 20px; display: grid; gap: 16px; background: #fafafa;">
-              ${requestsInCat.map(req => {
-                const hasAction = req.status === "pendente";
-                return `
-                  <div class="panel" style="margin-bottom:0; border-left: 5px solid ${req.status === 'ok' ? 'var(--success)' : req.status === 'nao_ok' ? 'var(--danger)' : 'var(--warning)'}; box-shadow:none; border-top:1px solid var(--line); border-right:1px solid var(--line); border-bottom:1px solid var(--line);">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
-                      <div style="flex:1; min-width:280px;">
-                        <p style="margin:0 0 4px; font-size:0.9rem; color:var(--muted);"><strong>Técnico:</strong> ${escapeHtml(req.technician_name)} (RE: ${escapeHtml(req.technician_re)})</p>
-                        <p style="background:var(--surface); border:1px solid var(--line); padding:12px; border-radius:8px; margin:8px 0; font-size:0.95rem; line-height:1.5; color:var(--text);">"${escapeHtml(req.details)}"</p>
-                        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                          <small style="color:var(--muted);">${formatDate(req.created_at)}</small>
-                          <span class="badge ${req.status === 'ok' ? 'done' : req.status === 'nao_ok' ? 'denied' : 'pending'}" style="font-size:0.7rem; padding:2px 6px;">${req.status.toUpperCase()}</span>
-                        </div>
-                        ${req.admin_response ? `<p style="margin:8px 0 0; color:var(--primary); font-size:0.9rem; font-weight:500;"><strong>Resposta do Admin:</strong> ${escapeHtml(req.admin_response)}</p>` : ""}
+            
+            <div style="padding: 16px; background: #f8fafc;" class="kanban-board">
+              
+              <div class="kanban-column">
+                <div class="kanban-column-header">
+                  <span>📥 Para Fazer / Pendentes</span>
+                  <span class="badge pending">${colPendente.length}</span>
+                </div>
+                ${colPendente.length === 0 ? `<div class="empty">Nenhum chamado na fila.</div>` : colPendente.map(req => `
+                  <div class="kanban-card" style="border-top: 4px solid var(--warning);">
+                    <div>
+                      <span style="font-size:0.8rem; font-weight:600; color:var(--muted);">RE: ${escapeHtml(req.technician_re)}</span>
+                      <strong style="display:block; margin-top:2px; font-size:0.95rem;">${escapeHtml(req.technician_name)}</strong>
+                    </div>
+                    <p style="background:var(--surface-2); padding:10px; border-radius:6px; margin:4px 0; font-size:0.9rem; line-height:1.4; border:1px solid var(--line);">"${escapeHtml(req.details)}"</p>
+                    <small style="color:var(--muted);">${formatDate(req.created_at)}</small>
+                    <div style="display:grid; gap:6px; margin-top:4px;">
+                      <input id="resp-${req.id}" placeholder="Feedback ou observação..." style="padding:8px; font-size:0.85rem; height:34px;" />
+                      <div style="display:flex; gap:6px;">
+                        <button class="primary-btn" onclick="handleProcessRequest('${req.id}', 'ok')" style="height:32px; padding:0 8px; font-size:0.8rem; flex:1;">Liberar / OK</button>
+                        <button class="secondary-btn" onclick="handleProcessRequest('${req.id}', 'nao_ok')" style="height:32px; padding:0 8px; font-size:0.8rem; color:var(--danger); border-color:var(--danger); flex:1;">Recusar</button>
                       </div>
-                      ${hasAction ? `
-                        <div style="display:grid; gap:8px; width:100%; max-width:220px;">
-                          <input id="resp-${req.id}" placeholder="Escreva um feedback..." style="padding:8px; font-size:0.85rem;" />
-                          <button class="primary-btn" onclick="handleProcessRequest('${req.id}', 'ok')" style="min-height:32px; padding:4px; font-size:0.85rem;">Liberar / OK</button>
-                          <button class="secondary-btn" onclick="handleProcessRequest('${req.id}', 'nao_ok')" style="min-height:32px; padding:4px; font-size:0.85rem; color:var(--danger); border-color:var(--danger);">Recusar / Não OK</button>
-                        </div>
-                      ` : ""}
                     </div>
                   </div>
-                `;
-              }).join("")}
+                `).join("")}
+              </div>
+
+              <div class="kanban-column">
+                <div class="kanban-column-header">
+                  <span>⚡ Respondidos / OK</span>
+                  <span class="badge done">${colConcluido.length}</span>
+                </div>
+                ${colConcluido.length === 0 ? `<div class="empty">Nenhum chamado respondido.</div>` : colConcluido.map(req => `
+                  <div class="kanban-card" style="border-top: 4px solid ${req.status === 'ok' ? 'var(--success)' : 'var(--danger)'};">
+                    <div>
+                      <span style="font-size:0.8rem; font-weight:600; color:var(--muted);">RE: ${escapeHtml(req.technician_re)}</span>
+                      <strong style="display:block; font-size:0.95rem;">${escapeHtml(req.technician_name)}</strong>
+                    </div>
+                    <span class="badge ${req.status === 'ok' ? 'done' : 'denied'}" style="font-size:0.65rem; padding:2px 6px;">${req.status.toUpperCase()}</span>
+                    <p style="margin:4px 0; font-size:0.88rem; color:var(--text); line-height:1.4;"><strong>Retorno enviado:</strong> ${escapeHtml(req.admin_response)}</p>
+                    <small style="color:var(--muted);">${formatDate(req.created_at)}</small>
+                  </div>
+                `).join("")}
+              </div>
+
+              <div class="kanban-column">
+                <div class="kanban-column-header">
+                  <span>✅ Lido / Arquivado</span>
+                  <span class="badge" style="background:#cbd5e1; color:#475569;">${colLido.length}</span>
+                </div>
+                ${colLido.length === 0 ? `<div class="empty">Ninguém marcou ciente ainda.</div>` : colLido.map(req => `
+                  <div class="kanban-card" style="border-top: 4px solid #cbd5e1; opacity:0.65;">
+                    <div>
+                      <span style="font-size:0.8rem; font-weight:600; color:var(--muted);">RE: ${escapeHtml(req.technician_re)}</span>
+                      <strong style="display:block; font-size:0.95rem; color:var(--muted);">${escapeHtml(req.technician_name)}</strong>
+                    </div>
+                    <span class="badge" style="background:#e2e8f0; color:#475569; font-size:0.65rem; padding:2px 6px;">LIDO / CIENTE</span>
+                    <small style="color:var(--muted);">${formatDate(req.created_at)}</small>
+                  </div>
+                `).join("")}
+              </div>
+
             </div>
           </div>
         `;
@@ -660,7 +741,6 @@ function renderAdminScriptsForm() {
   });
 }
 
-// NOVO FORMULÁRIO: Emissão Dinâmica de Comunicados Internos
 function renderAdminAnnouncementsForm() {
   const container = document.querySelector("#admin-panel-content");
   container.innerHTML = `
@@ -816,6 +896,6 @@ function renderAdminUsersForm() {
 /* ================= AUXILIARES ================= */
 function showMessage(element, type, text) { element.className = `message show ${type}`; element.textContent = text; }
 function setFormBusy(form, busy) { form.querySelectorAll("button, input, textarea, select").forEach(f => f.disabled = busy); }
-function labelStatus(status) { const labels = { pendente: "Pendente", ok: "OK", nao_ok: "Não OK" }; return labels[status] || status; }
+function labelStatus(status) { const labels = { pendente: "Pendente", ok: "OK", nao_ok: "Não OK", arquivado: "Lido" }; return labels[status] || status; }
 function formatDate(v) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(v)); }
 function escapeHtml(v) { return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
