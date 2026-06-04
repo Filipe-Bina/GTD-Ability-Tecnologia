@@ -524,33 +524,164 @@ function renderAdminScriptsForm() {
 
 function renderAdminUsersForm() {
   const container = document.querySelector("#admin-panel-content");
+  
+  // Estrutura base da interface de gerenciamento
   container.innerHTML = `
     <section class="panel">
-      <h2>Controle de Usuários Autorizados (Whitelist)</h2>
-      <p class="helper">Como Administrador Master, você pode incluir novos técnicos diretamente na base autorizada.</p>
-      <form class="form" id="insert-tech-whitelist">
-        <label>RE do Novo Técnico<input name="re" required placeholder="Ex.: 36122" inputmode="numeric" /></label>
-        <label>Nome Completo do Técnico<input name="name" required placeholder="Ex.: CARLOS EDUARDO SILVA" /></label>
-        <div class="message" id="whitelist-msg"></div>
-        <button class="primary-btn" type="submit">Autorizar Técnico</button>
-      </form>
+      <div>
+        <h2>Controle de Usuários Autorizados (Whitelist & Perfis)</h2>
+        <p class="helper">Consulte pelo RE ou CPF para verificar o status, cadastrar, alterar funções ou deletar de forma definitiva.</p>
+      </div>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 22px; max-width: 500px;">
+        <input id="search-identificador" inputmode="numeric" placeholder="Digite RE ou CPF (somente números)" style="padding: 10px;" />
+        <button class="primary-btn" id="btn-search-user" style="min-width: 120px; min-height: 44px;">Consultar</button>
+      </div>
+
+      <div id="management-workarea">
+        <div class="empty">Insira um identificador acima para iniciar a gestão.</div>
+      </div>
     </section>
   `;
 
-  document.querySelector("#insert-tech-whitelist").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const re = String(new FormData(form).get("re")).trim();
-    const name = String(new FormData(form).get("name")).trim().toUpperCase();
-    const msg = document.querySelector("#whitelist-msg");
+  // Evento de clique para o botão de busca
+  document.querySelector("#btn-search-user").addEventListener("click", async () => {
+    const identificador = document.querySelector("#search-identificador").value.trim().replace(/[^0-9]/g, "");
+    const workarea = document.querySelector("#management-workarea");
 
-    setFormBusy(form, true);
-    const { error } = await db.from("allowed_technicians").insert({ re: re, name: name });
-    setFormBusy(form, false);
+    if (!identificador) {
+      alert("Por favor, informe o RE ou CPF.");
+      return;
+    }
 
-    if (error) { showMessage(msg, "error", error.message); return; }
-    form.reset();
-    showMessage(msg, "ok", `Técnico ${name} adicionado com sucesso à whitelist.`);
+    workarea.innerHTML = `<div class="empty">Consultando base de dados do Supabase...</div>`;
+
+    try {
+      const { data, error } = await db.rpc("check_user_status", { p_identificador: identificador });
+      
+      if (error) {
+        workarea.innerHTML = `<div class="message show error">Erro na consulta: ${error.message}</div>`;
+        return;
+      }
+
+      // Renderização dinâmica baseada no status retornado pelo banco
+      let statusLabel = "";
+      let alertClass = "pending";
+      
+      if (data.status === "cadastrado") {
+        statusLabel = "CONTA ATIVA E CADASTRADA NO SISTEMA";
+        alertClass = "done";
+      } else if (data.status === "na_whitelist") {
+        statusLabel = "AUTORIZADO NA WHITELIST (Aguardando primeiro acesso do usuário)";
+        alertClass = "pending";
+      } else {
+        statusLabel = "NÃO AUTORIZADO (Inexistente no sistema)";
+        alertClass = "denied";
+      }
+
+      workarea.innerHTML = `
+        <div class="badge ${alertClass}" style="margin-bottom: 16px; font-size: 0.85rem; padding: 6px 12px;">
+          Status: ${statusLabel}
+        </div>
+
+        <form class="form" id="user-mutation-form" style="margin-top: 10px;">
+          <label>
+            Nome Completo do Colaborador
+            <input id="mutation-name" required value="${escapeHtml(data.name)}" placeholder="Ex.: NOMES SOBRENOME" ${data.status === 'cadastrado' ? 'disabled' : ''} />
+            ${data.status === 'cadastrado' ? '<small style="color:var(--muted); font-weight:normal;">Para usuários já cadastrados, o nome é gerenciado pelo próprio login.</small>' : ''}
+          </label>
+
+          <label>
+            Função / Nível de Acesso no Sistema
+            <select id="mutation-role" style="width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 13px 14px; background: #fff; font: inherit;">
+              <option value="tecnico" ${data.role === 'tecnico' ? 'selected' : ''}>Técnico</option>
+              <option value="administrador" ${data.role === 'administrador' ? 'selected' : ''}>Administrador</option>
+              <option value="administrador_master" ${data.role === 'administrador_master' ? 'selected' : ''}>Administrador Master</option>
+            </select>
+          </label>
+
+          <div class="message" id="mutation-msg"></div>
+
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
+            <button class="primary-btn" type="submit" style="flex: 1; min-width: 180px;">
+              ${data.status === 'cadastrado' ? 'Atualizar Função' : 'Salvar e Autorizar na Whitelist'}
+            </button>
+            
+            ${data.status !== 'nao_autorizado' ? `
+              <button class="secondary-btn" type="button" id="btn-delete-user" style="color: var(--danger); border-color: var(--danger); min-width: 180px;">
+                Excluir Definitivamente
+              </button>
+            ` : ""}
+          </div>
+        </form>
+      `;
+
+      // Evento de Gravação / Atualização (Upsert manual baseado no perfil escolhido)
+      document.querySelector("#user-mutation-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const inputName = document.querySelector("#mutation-name").value.trim().toUpperCase();
+        const selectedRole = document.querySelector("#mutation-role").value;
+        const msg = document.querySelector("#mutation-msg");
+
+        setFormBusy(form, true);
+        let saveError = null;
+
+        if (data.status === "cadastrado") {
+          // Cenário A: Usuário já tem conta, apenas atualiza a role na tabela users
+          const { error } = await db.from("users").update({ role: selectedRole }).eq("re", identificador);
+          saveError = error;
+        } else {
+          // Cenário B: Ajustando Whitelists. Remove das duas para evitar resíduos e insere na correta
+          await db.from("allowed_technicians").delete().eq("re", identificador);
+          await db.from("allowed_admins").delete().eq("cpf", identificador);
+
+          if (selectedRole === "tecnico") {
+            const { error } = await db.from("allowed_technicians").insert({ re: identificador, name: inputName });
+            saveError = error;
+          } else {
+            const adminLevel = selectedRole === "administrador_master" ? "master" : "admin";
+            const { error } = await db.from("allowed_admins").insert({ cpf: identificador, name: inputName, level: adminLevel });
+            saveError = error;
+          }
+        }
+
+        setFormBusy(form, false);
+
+        if (saveError) {
+          showMessage(msg, "error", `Erro ao salvar: ${saveError.message}`);
+        } else {
+          showMessage(msg, "ok", "Alterações gravadas com absoluto sucesso!");
+          setTimeout(renderAdminUsersForm, 1500); // Dá um refresh na tela após sucesso
+        }
+      });
+
+      // Evento de Exclusão Definitiva (Chama o RPC unificado)
+      if (data.status !== "nao_autorizado") {
+        document.querySelector("#btn-delete-user").addEventListener("click", async () => {
+          if (!confirm(`ATENÇÃO MASTER:\nTem certeza que deseja apagar DEFINITIVAMENTE o ID ${identificador} do sistema?\nIsso removerá o acesso e todo o registro de autorização.`)) {
+            return;
+          }
+
+          const form = document.querySelector("#user-mutation-form");
+          setFormBusy(form, true);
+
+          const { error } = await db.rpc("delete_user_completely", { p_identificador: identificador });
+          
+          setFormBusy(form, false);
+
+          if (error) {
+            alert(`Erro ao deletar: ${error.message}`);
+          } else {
+            alert("Usuário totalmente expurgado da base!");
+            renderAdminUsersForm();
+          }
+        });
+      }
+
+    } catch (err) {
+      workarea.innerHTML = `<div class="message show error">Erro na execução: ${err.message}</div>`;
+    }
   });
 }
 
