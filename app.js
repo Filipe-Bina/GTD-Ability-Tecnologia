@@ -139,35 +139,166 @@ function render() {
 }
 
 function renderAuth() {
+  const app = document.querySelector("#app");
+  
+  // Interface com 3 opções agora: Login, Primeiro Acesso e Redefinir Senha
   app.innerHTML = `
     <section class="auth-shell">
-      <div class="auth-panel">
-        <aside class="brand-side">
-          <div>
-            <div class="brand-mark">GTD</div>
-            <h1>GTD-Ability Tecnologia</h1>
-            <p>Sistema operacional para solicitações técnicas, scripts e códigos de baixa.</p>
-          </div>
-          <p>Acesso unificado para Técnicos (RE) e Administradores (CPF).</p>
-        </aside>
-        <section class="auth-form-side">
-          <div class="tabs" role="tablist">
-            <button class="tab ${authMode === "login" ? "active" : ""}" data-auth-tab="login">Login</button>
-            <button class="tab ${authMode === "register" ? "active" : ""}" data-auth-tab="register">Cadastro</button>
-          </div>
-          <div id="auth-content"></div>
-        </section>
+      <div class="auth-card">
+        <header class="auth-header">
+          <h1>GTD-Ability Tecnologia</h1>
+          <p>Sistema de Gestão Operacional Integrado</p>
+        </header>
+
+        <nav class="auth-tabs">
+          <button class="tab-btn active" id="tab-login">Login</button>
+          <button class="tab-btn" id="tab-register">Primeiro Acesso</button>
+          <button class="tab-btn" id="tab-reset" style="color: var(--warning);">Esqueci a Senha</button>
+        </nav>
+
+        <form class="form auth-form show" id="form-login">
+          <label>
+            Usuário (RE do Técnico ou CPF do Admin)
+            <input id="login-re" required inputmode="numeric" placeholder="Digite apenas números" />
+          </label>
+          <label>
+            Senha de Acesso
+            <input id="login-password" type="password" required placeholder="Digite sua senha" />
+          </label>
+          <div class="message" id="login-msg"></div>
+          <button class="primary-btn" type="submit">Entrar no Sistema</button>
+        </form>
+
+        <form class="form auth-form" id="form-register">
+          <p class="helper" style="margin-bottom: 12px;">Se for o seu primeiro acesso, informe o seu RE ou CPF pré-autorizado para criar sua senha.</p>
+          <label>
+            Identificador Autorizado (RE ou CPF)
+            <input id="register-re" required inputmode="numeric" placeholder="Digite apenas números" />
+          </label>
+          <label>
+            Crie sua Senha (Exatamente 8 dígitos: letras e números)
+            <input id="register-password" type="password" required maxlength="8" placeholder="Ex: gtd2026x" />
+          </label>
+          <div class="message" id="register-msg"></div>
+          <button class="primary-btn" type="submit">Cadastrar Senha e Ativar</button>
+        </form>
+
+        <form class="form auth-form" id="form-reset">
+          <p class="helper" style="margin-bottom: 12px; color: var(--warning);">Para redefinir sua senha, informe seus dados idênticos ao cadastro da empresa.</p>
+          <label>
+            Seu RE ou CPF cadastrado
+            <input id="self-reset-re" required inputmode="numeric" placeholder="Digite apenas números" />
+          </label>
+          <label>
+            Nome Completo (Como está registrado)
+            <input id="self-reset-name" required placeholder="Ex: JOÃO SILVA" />
+          </label>
+          <label>
+            Nova Senha (8 dígitos: letras e números)
+            <input id="self-reset-password" type="password" required maxlength="8" placeholder="Digite a nova senha" />
+          </label>
+          <div class="message" id="self-reset-msg"></div>
+          <button class="primary-btn" type="submit" style="background: var(--warning);">Redefinir e Gravar Senha</button>
+        </form>
+
       </div>
     </section>
   `;
 
-  document.querySelectorAll("[data-auth-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      authMode = button.dataset.authTab;
-      renderAuth();
+  // Gerenciamento de alternância entre as Abas (Tabs)
+  const tabs = {
+    login: { btn: app.querySelector("#tab-login"), form: app.querySelector("#form-login") },
+    register: { btn: app.querySelector("#tab-register"), form: app.querySelector("#form-register") },
+    reset: { btn: app.querySelector("#tab-reset"), form: app.querySelector("#form-reset") }
+  };
+
+  function switchTab(targetKey) {
+    Object.keys(tabs).forEach((key) => {
+      if (key === targetKey) {
+        tabs[key].btn.classList.add("active");
+        tabs[key].form.classList.add("show");
+      } else {
+        tabs[key].btn.classList.remove("active");
+        tabs[key].form.classList.remove("show");
+      }
     });
+  }
+
+  tabs.login.btn.addEventListener("click", () => switchTab("login"));
+  tabs.register.btn.addEventListener("click", () => switchTab("register"));
+  tabs.reset.btn.addEventListener("click", () => switchTab("reset"));
+
+  // EVENTO: Submissão do Login
+  app.querySelector("#form-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const re = app.querySelector("#login-re").value.trim().replace(/[^0-9]/g, "");
+    const password = app.querySelector("#login-password").value;
+    const msg = app.querySelector("#login-msg");
+
+    setFormBusy(form, true);
+    const { data, error } = await db.rpc("login_technician", { p_re: re, p_password: password });
+    setFormBusy(form, false);
+
+    if (error) {
+      showMessage(msg, "error", `Erro interno: ${error.message}`);
+    } else if (!data.ok) {
+      showMessage(msg, "error", data.message);
+    } else {
+      setSession(data.user);
+      render();
+    }
   });
-  renderAuthForm();
+
+  // EVENTO: Submissão do Primeiro Acesso
+  app.querySelector("#form-register").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const re = app.querySelector("#register-re").value.trim().replace(/[^0-9]/g, "");
+    const password = app.querySelector("#register-password").value;
+    const msg = app.querySelector("#register-msg");
+
+    setFormBusy(form, true);
+    const { data, error } = await db.rpc("register_technician_password", { p_re: re, p_password: password });
+    setFormBusy(form, false);
+
+    if (error) {
+      showMessage(msg, "error", `Erro interno: ${error.message}`);
+    } else if (!data.ok) {
+      showMessage(msg, "error", data.message);
+    } else {
+      alert("Cadastro realizado com sucesso! Faça o login agora.");
+      switchTab("login");
+    }
+  });
+
+  // EVENTO: Submissão da Auto-Redefinição de Senha
+  app.querySelector("#form-reset").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const re = app.querySelector("#self-reset-re").value.trim().replace(/[^0-9]/g, "");
+    const name = app.querySelector("#self-reset-name").value.trim();
+    const newPassword = app.querySelector("#self-reset-password").value;
+    const msg = app.querySelector("#self-reset-msg");
+
+    setFormBusy(form, true);
+    const { data, error } = await db.rpc("self_reset_password", { 
+      p_re: re, 
+      p_name: name, 
+      p_new_password: newPassword 
+    });
+    setFormBusy(form, false);
+
+    if (error) {
+      showMessage(msg, "error", `Erro interno: ${error.message}`);
+    } else if (!data.ok) {
+      showMessage(msg, "error", data.message);
+    } else {
+      alert("Sua senha foi redefinida com absoluto sucesso! Faça o login na aba ao lado.");
+      form.reset();
+      switchTab("login");
+    }
+  });
 }
 
 function renderAuthForm() {
@@ -525,12 +656,11 @@ function renderAdminScriptsForm() {
 function renderAdminUsersForm() {
   const container = document.querySelector("#admin-panel-content");
   
-  // Estrutura base da interface de gerenciamento
   container.innerHTML = `
     <section class="panel">
       <div>
         <h2>Controle de Usuários Autorizados (Whitelist & Perfis)</h2>
-        <p class="helper">Consulte pelo RE ou CPF para verificar o status, cadastrar, alterar funções ou deletar de forma definitiva.</p>
+        <p class="helper">Consulte pelo RE ou CPF para verificar o status, cadastrar, alterar funções ou resetar/deletar logins.</p>
       </div>
       
       <div style="display: flex; gap: 10px; margin-bottom: 22px; max-width: 500px;">
@@ -544,7 +674,6 @@ function renderAdminUsersForm() {
     </section>
   `;
 
-  // Evento de clique para o botão de busca
   document.querySelector("#btn-search-user").addEventListener("click", async () => {
     const identificador = document.querySelector("#search-identificador").value.trim().replace(/[^0-9]/g, "");
     const workarea = document.querySelector("#management-workarea");
@@ -564,15 +693,14 @@ function renderAdminUsersForm() {
         return;
       }
 
-      // Renderização dinâmica baseada no status retornado pelo banco
       let statusLabel = "";
       let alertClass = "pending";
       
       if (data.status === "cadastrado") {
-        statusLabel = "CONTA ATIVA E CADASTRADA NO SISTEMA";
+        statusLabel = "CONTA ATIVA E CADASTRADA (Senha protegida por hash irreversível)";
         alertClass = "done";
       } else if (data.status === "na_whitelist") {
-        statusLabel = "AUTORIZADO NA WHITELIST (Aguardando primeiro acesso do usuário)";
+        statusLabel = "AUTORIZADO / AGUARDANDO CADASTRO DE SENHA (Primeiro acesso ou resetado)";
         alertClass = "pending";
       } else {
         statusLabel = "NÃO AUTORIZADO (Inexistente no sistema)";
@@ -588,7 +716,6 @@ function renderAdminUsersForm() {
           <label>
             Nome Completo do Colaborador
             <input id="mutation-name" required value="${escapeHtml(data.name)}" placeholder="Ex.: NOMES SOBRENOME" ${data.status === 'cadastrado' ? 'disabled' : ''} />
-            ${data.status === 'cadastrado' ? '<small style="color:var(--muted); font-weight:normal;">Para usuários já cadastrados, o nome é gerenciado pelo próprio login.</small>' : ''}
           </label>
 
           <label>
@@ -603,12 +730,18 @@ function renderAdminUsersForm() {
           <div class="message" id="mutation-msg"></div>
 
           <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
-            <button class="primary-btn" type="submit" style="flex: 1; min-width: 180px;">
-              ${data.status === 'cadastrado' ? 'Atualizar Função' : 'Salvar e Autorizar na Whitelist'}
+            <button class="primary-btn" type="submit" style="flex: 1; min-width: 160px;">
+              ${data.status === 'cadastrado' ? 'Atualizar Função' : 'Salvar e Autorizar'}
             </button>
             
+            ${data.status === 'cadastrado' ? `
+              <button class="secondary-btn" type="button" id="btn-reset-password" style="color: var(--warning); border-color: var(--warning); min-width: 160px;">
+                Resetar Senha
+              </button>
+            ` : ""}
+            
             ${data.status !== 'nao_autorizado' ? `
-              <button class="secondary-btn" type="button" id="btn-delete-user" style="color: var(--danger); border-color: var(--danger); min-width: 180px;">
+              <button class="secondary-btn" type="button" id="btn-delete-user" style="color: var(--danger); border-color: var(--danger); min-width: 160px;">
                 Excluir Definitivamente
               </button>
             ` : ""}
@@ -616,7 +749,7 @@ function renderAdminUsersForm() {
         </form>
       `;
 
-      // Evento de Gravação / Atualização (Upsert manual baseado no perfil escolhido)
+      // Evento de Gravação / Atualização
       document.querySelector("#user-mutation-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -628,11 +761,9 @@ function renderAdminUsersForm() {
         let saveError = null;
 
         if (data.status === "cadastrado") {
-          // Cenário A: Usuário já tem conta, apenas atualiza a role na tabela users
           const { error } = await db.from("users").update({ role: selectedRole }).eq("re", identificador);
           saveError = error;
         } else {
-          // Cenário B: Ajustando Whitelists. Remove das duas para evitar resíduos e insere na correta
           await db.from("allowed_technicians").delete().eq("re", identificador);
           await db.from("allowed_admins").delete().eq("cpf", identificador);
 
@@ -647,33 +778,51 @@ function renderAdminUsersForm() {
         }
 
         setFormBusy(form, false);
-
         if (saveError) {
           showMessage(msg, "error", `Erro ao salvar: ${saveError.message}`);
         } else {
-          showMessage(msg, "ok", "Alterações gravadas com absoluto sucesso!");
-          setTimeout(renderAdminUsersForm, 1500); // Dá um refresh na tela após sucesso
+          showMessage(msg, "ok", "Alterações gravadas com sucesso!");
+          setTimeout(renderAdminUsersForm, 1500);
         }
       });
 
-      // Evento de Exclusão Definitiva (Chama o RPC unificado)
-      if (data.status !== "nao_autorizado") {
-        document.querySelector("#btn-delete-user").addEventListener("click", async () => {
-          if (!confirm(`ATENÇÃO MASTER:\nTem certeza que deseja apagar DEFINITIVAMENTE o ID ${identificador} do sistema?\nIsso removerá o acesso e todo o registro de autorização.`)) {
+      // Evento de Reset pelo Admin Master
+      if (data.status === "cadastrado") {
+        document.querySelector("#btn-reset-password").addEventListener("click", async () => {
+          if (!confirm(`Deseja forçar o RESET da senha do usuário ${identificador}?\nEle será desconectado e precisará cadastrar uma nova senha no próximo acesso.`)) {
             return;
           }
+          const form = document.querySelector("#user-mutation-form");
+          setFormBusy(form, true);
 
+          const { error } = await db.rpc("reset_user_password", { p_identificador: identificador });
+          setFormBusy(form, false);
+
+          if (error) {
+            alert(`Erro ao resetar: ${error.message}`);
+          } else {
+            alert("Senha limpa com sucesso! O usuário voltou para o estado de primeiro acesso.");
+            renderAdminUsersForm();
+          }
+        });
+      }
+
+      // Evento de Exclusão Definitiva
+      if (data.status !== "nao_autorizado") {
+        document.querySelector("#btn-delete-user").addEventListener("click", async () => {
+          if (!confirm(`ATENÇÃO:\nTem certeza que deseja apagar DEFINITIVAMENTE o ID ${identificador} do sistema?`)) {
+            return;
+          }
           const form = document.querySelector("#user-mutation-form");
           setFormBusy(form, true);
 
           const { error } = await db.rpc("delete_user_completely", { p_identificador: identificador });
-          
           setFormBusy(form, false);
 
           if (error) {
             alert(`Erro ao deletar: ${error.message}`);
           } else {
-            alert("Usuário totalmente expurgado da base!");
+            alert("Usuário totalmente removido!");
             renderAdminUsersForm();
           }
         });
