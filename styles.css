@@ -79,19 +79,41 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .ghost-btn { background: transparent; color: var(--danger); border: none; font-weight: 600; cursor: pointer; }
 
 /* --- LAYOUT DA BARRA SUPERIOR --- */
-.topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-sm); }
-.topbar-inner { max-width: 1440px; margin: 0 auto; padding: 24px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.app-title { font-weight: 800; font-size: 1.1rem; }
-.mini-mark { background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; margin-right: 4px; font-size: 0.85rem; }
-.user-chip { display: flex; align-items: center; gap: 12px; font-size: 0.88rem; }
+.topbar { 
+  background: var(--surface); 
+  border-bottom: 1px solid var(--line); 
+  position: sticky; 
+  top: 0; 
+  z-index: 50; 
+  box-shadow: var(--shadow-sm); 
+}
+
+/* Esta é a classe interna que limita a largura do conteúdo da barra */
+.topbar-inner { 
+  max-width: 1440px;      /* Restringe o tamanho máximo igual ao painel inferior */
+  margin: 0 auto;         /* Centraliza perfeitamente na tela */
+  padding: 14px 20px;     /* O 20px garante o recuo idêntico ao das linhas vermelhas */
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 16px; 
+}
 
 /* --- CORREÇÃO SÊNIOR: CONTENÇÃO E CONTROLE ALINHADO DO TICKER DE AVISOS --- */
 #mural-avisos-ticker {
-  max-width: 1440px;
-  margin: 0 auto !important;
-  border-left: 1px solid #ffeeba;
-  border-right: 1px solid #ffeeba;
-  border-radius: 0 0 8px 8px;
+  max-width: 1440px;      /* Mesma trava de largura para alinhar com o painel */
+  margin: 0 auto !important; /* Força a centralização na tela */
+  box-sizing: border-box;
+  
+  /* Modificações de borda para não parecer uma faixa infinita cortando a tela */
+  border-left: 1px solid #ffeeba;  /* Fecha o card na esquerda */
+  border-right: 1px solid #ffeeba; /* Fecha o card na direita */
+  border-radius: 0 0 8px 8px;      /* Arredonda levemente os cantos inferiores */
+}
+
+/* Ajuste fino no container de texto interno do ticker se necessário */
+#mural-avisos-ticker .ticker-wrap {
+  padding: 0 20px; /* Garante que o texto em movimento respeite o limite da linha vermelha */
 }
 
 /* --- CORREÇÃO SÊNIOR: CONTENÇÃO CENTRALIZADA DA MAIN CONTENT --- */
