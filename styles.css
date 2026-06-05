@@ -79,19 +79,29 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .ghost-btn { background: transparent; color: var(--danger); border: none; font-weight: 600; cursor: pointer; }
 
 /* --- LAYOUT DA BARRA SUPERIOR --- */
-.topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-sm); }
-.topbar-inner { max-width: 1440px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.app-title { font-weight: 800; font-size: 1.1rem; }
-.mini-mark { background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; margin-right: 4px; font-size: 0.85rem; }
-.user-chip { display: flex; align-items: center; gap: 12px; font-size: 0.88rem; }
-
+.topbar { 
+  background: var(--surface); 
+  border-bottom: 1px solid var(--line); 
+  position: sticky; 
+  top: 0; 
+  z-index: 50; 
+  box-shadow: var(--shadow-sm); 
+}
+.topbar-inner { 
+  max-width: 1440px;      /* Mesma largura máxima da área de escala */
+  margin: 0 auto;         /* Centraliza o bloco na tela */
+  padding: 14px 20px;     /* O "20px" garante o alinhamento milimétrico nas laterais */
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 16px; 
+}
 /* --- CORREÇÃO SÊNIOR: CONTENÇÃO E CONTROLE ALINHADO DO TICKER DE AVISOS --- */
 #mural-avisos-ticker {
-  max-width: 1440px;
-  margin: 0 auto !important;
-  border-left: 1px solid #ffeeba;
-  border-right: 1px solid #ffeeba;
-  border-radius: 0 0 8px 8px;
+  max-width: 1440px;      /* Mesma largura máxima */
+  margin: 0 auto !important; /* Centraliza na tela anulando margens externas */
+  padding: 0 20px;        /* Alinha o início e fim do texto com o restante do sistema */
+  box-sizing: border-box;
 }
 
 /* --- CORREÇÃO SÊNIOR: CONTENÇÃO CENTRALIZADA DA MAIN CONTENT --- */
