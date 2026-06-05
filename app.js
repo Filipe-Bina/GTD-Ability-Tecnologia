@@ -132,7 +132,7 @@ function playNotificationSound(type) {
       osc.type = "triangle"; osc.frequency.setValueAtTime(587, ctx.currentTime);
       gain.gain.setValueAtTime(0.2, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.25);
     }
-  } catch (e) { console.log("Áudio mutado."); }
+  } catch (e) { console.log("Áudio indisponível."); }
 }
 
 function initRealtimeBroadcasting() {
@@ -296,8 +296,10 @@ function renderTechnicianHome() {
   app.innerHTML = `
     <section class="app-shell">
       ${topbar()}
-      <div id="mural-avisos-ticker" style="background:#fff3cd; border-bottom:1px solid #ffeeba; padding:12px 20px; font-size:0.9rem; font-weight:600; color:#856404;">
-        <div id="ticker-container-area" style="display:flex; flex-direction:column; gap:8px;">Carregando avisos operacionais...</div>
+      <div id="mural-avisos-ticker">
+        <div class="ticker-inner-wrapper">
+          <div id="ticker-container-area">Carregando avisos operacionais...</div>
+        </div>
       </div>
       <main class="content">
         <section class="panel" style="margin-bottom: 24px; background: #f0fdf4; border-color: #bbf7d0;">
@@ -350,7 +352,7 @@ async function loadRecentAnnouncements() {
   containerArea.innerHTML = unreadAnnouncements.map(aviso => {
     const prefix = aviso.target_type === 'especifico' ? '🔒 [Aviso Direcionado]' : '📢 [Aviso Geral]';
     return `
-      <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.6); padding:8px 12px; border-radius:6px; border:1px solid rgba(133,100,4,0.15);">
+      <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.6); padding:8px 12px; border-radius:6px; border:1px solid rgba(133,100,4,0.15); width: 100%;">
         <span style="line-height:1.4;"><strong>${prefix}</strong> ${escapeHtml(aviso.content)} <small style="font-weight:normal; color:var(--muted); margin-left:6px;">(${formatDate(aviso.created_at)})</small></span>
         <button class="primary-btn" onclick="handleAckAnnouncement('${aviso.id}')" style="min-height:24px; padding:2px 8px; font-size:0.75rem; background:#d97706; width:auto; font-weight:700;">Ok, Lido</button>
       </div>
@@ -710,7 +712,7 @@ async function renderAdminEscalaForm() {
               <div style="font-size:0.88rem; line-height:1.5; flex:1;">
                 <div style="font-weight:700; color:var(--text); font-size:0.95rem;">🗓️ ${formatOnlyDate(sc.data_plantao)} | ⏰ ${sc.horario_inicio.substring(0,5)} às ${sc.horario_fim.substring(0,5)}</div>
                 <div><strong>Técnico:</strong> ${escapeHtml(sc.tecnico_name)} (RE: ${sc.tecnico_re})</div>
-                <div style="color:var(--muted);"><strong>Supervisor:</strong> ${escapeHtml(sc.supervisor_plantao)}</div>
+                <div style="color:var(--muted); font-weight:500;"><strong>Supervisor:</strong> ${escapeHtml(sc.supervisor_plantao)}</div>
               </div>
               <button class="ghost-btn" onclick="handleDeleteEscala('${sc.id}')" style="width:auto; padding:4px;" title="Remover plantão">🗑️</button>
             </div>
