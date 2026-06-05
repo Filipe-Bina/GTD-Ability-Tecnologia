@@ -33,6 +33,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+button, input, textarea, select {
+  font: inherit;
+}
+
 /* --- SEÇÃO DE AUTENTICAÇÃO CENTRALIZADA --- */
 .auth-shell {
   display: flex;
@@ -61,7 +65,7 @@ body {
 .auth-forms-container .auth-form { display: none; }
 .auth-forms-container .auth-form.show { display: grid; gap: 16px; }
 
-/* --- CORE INTERFACES --- */
+/* --- CORE FORMULÁRIOS --- */
 .form { display: grid; gap: 16px; }
 label { display: grid; gap: 6px; font-size: 0.88rem; font-weight: 600; color: var(--text); }
 input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 11px 14px; font-size: 0.95rem; outline: none; }
@@ -74,14 +78,37 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .secondary-btn:hover { background: var(--surface-2); }
 .ghost-btn { background: transparent; color: var(--danger); border: none; font-weight: 600; cursor: pointer; }
 
-/* --- LAYOUT DO PAINEL (TOPBAR & GRID) --- */
+/* --- LAYOUT DA BARRA SUPERIOR --- */
 .topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-sm); }
 .topbar-inner { max-width: 1440px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .app-title { font-weight: 800; font-size: 1.1rem; }
 .mini-mark { background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; margin-right: 4px; font-size: 0.85rem; }
 .user-chip { display: flex; align-items: center; gap: 12px; font-size: 0.88rem; }
-.content { max-width: 1440px; margin: 0 auto; padding: 24px 20px; }
 
+/* --- CORREÇÃO SÊNIOR: CONTENÇÃO E CONTROLE ALINHADO DO TICKER DE AVISOS --- */
+#mural-avisos-ticker {
+  max-width: 1440px;
+  margin: 0 auto !important;
+  border-left: 1px solid #ffeeba;
+  border-right: 1px solid #ffeeba;
+  border-radius: 0 0 8px 8px;
+}
+
+/* --- CORREÇÃO SÊNIOR: CONTENÇÃO CENTRALIZADA DA MAIN CONTENT --- */
+.content { 
+  max-width: 1440px; 
+  margin: 0 auto; 
+  padding: 24px 20px; 
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
 .section-head h2 { margin: 0 0 4px; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
 .section-head p { margin: 0; color: var(--muted); font-size: 0.95rem; }
 
@@ -89,8 +116,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .tab { flex: 1; background: transparent; border: none; padding: 10px 4px; font-size: 0.88rem; font-weight: 600; color: var(--muted); border-radius: 6px; cursor: pointer; text-align: center; }
 .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
 
+/* Grid de botões de solicitações do Técnico */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
-.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; text-align: left; box-shadow: var(--shadow-sm); width: 100%; border: none; cursor: pointer; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; text-align: left; box-shadow: var(--shadow-sm); width: 100%; border: none; cursor: pointer; transition: all 0.2s ease; }
 .tile:hover { border-color: var(--primary); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .tile div { font-weight: 700; color: var(--text); font-size: 1rem; }
 .tile span { display: block; font-weight: 400; color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
@@ -98,7 +126,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
 
-/* STRUCTURE: ESTRUTURA ESTILO KANBAN DE PRODUTIVIDADE */
+/* --- ESTRUTURA KANBAN ADMINISTRATIVA --- */
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -113,7 +141,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   min-height: 250px;
   display: grid;
   gap: 12px;
-  content-visibility: auto;
 }
 .kanban-column-header {
   font-size: 0.9rem;
@@ -126,8 +153,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   align-items: center;
   justify-content: space-between;
 }
-
-/* CARDS INTERNOS DO GRID */
 .kanban-card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -138,7 +163,32 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   gap: 10px;
 }
 
-.request-list { display: grid; gap: 12px; margin-top: 16px; }
+/* --- CORREÇÃO SÊNIOR: BLOCO FIXO DE SOLICITAÇÕES DO TÉCNICO COM SCROLL INTERNO --- */
+.request-list { 
+  display: grid; 
+  gap: 12px; 
+  margin-top: 16px;
+  max-height: 400px;         /* Define o teto fixo do bloco (padrão de interface) */
+  overflow-y: auto;          /* Adiciona a rolagem vertical quando estourar o limite */
+  padding-right: 6px;        /* Evita que a barra de rolagem cubra os botões */
+}
+
+/* Customização fina da barra de rolagem (Scrollbar) para manter o visual limpo */
+.request-list::-webkit-scrollbar {
+  width: 6px;
+}
+.request-list::-webkit-scrollbar-track {
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.request-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.request-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .request-item { border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .request-item p { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
 
@@ -156,10 +206,12 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .pdf-frame { width: 100%; height: 68vh; border: 1px solid var(--line); border-radius: 8px; }
 .script-box { background: #0f172a; color: #f1f5f9; padding: 16px; border-radius: 8px; font-family: monospace; overflow-x: auto; }
 
+/* --- RESPONSIVIDADE DE DISPOSITIVOS --- */
 @media (max-width: 1024px) {
   .kanban-board { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .topbar-inner { flex-direction: column; align-items: flex-start; }
   .user-chip { justify-content: flex-start; margin-top: 4px; }
+  #mural-avisos-ticker { border-radius: 0; border-left: none; border-right: none; }
 }
