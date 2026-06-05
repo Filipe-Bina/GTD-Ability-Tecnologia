@@ -105,8 +105,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 
 /* --- MURAL DE AVISOS (COMENTÁRIO CORRIGIDO) --- */
 #mural-avisos-ticker { 
-  max-width: 1440px;         /* Limita a largura idêntica à linha vermelha */
-  margin: 0 auto !important; /* Força a centralização na tela */
+  max-width: 1400px;         /* Limita a largura idêntica à linha vermelha */
+  margin: auto; /* Força a centralização na tela */
   box-sizing: border-box;
   background: #fff3cd;
   border-bottom: 1px solid #ffeeba;
