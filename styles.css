@@ -78,7 +78,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .secondary-btn:hover { background: var(--surface-2); }
 .ghost-btn { background: transparent; color: var(--danger); border: none; font-weight: 600; cursor: pointer; }
 
-/* --- LAYOUT DA BARRA SUPERIOR --- */
+/* --- LAYOUT DA BARRA SUPERIOR (TOPBAR) --- */
 .topbar { 
   background: var(--surface); 
   border-bottom: 1px solid var(--line); 
@@ -86,37 +86,37 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   top: 0; 
   z-index: 50; 
   box-shadow: var(--shadow-sm); 
+  width: 100%;
 }
-
-/* Esta é a classe interna que limita a largura do conteúdo da barra */
 .topbar-inner { 
-  max-width: 1440px;      /* Restringe o tamanho máximo igual ao painel inferior */
-  margin: 0 auto;         /* Centraliza perfeitamente na tela */
-  padding: 14px 20px;     /* O 20px garante o recuo idêntico ao das linhas vermelhas */
+  max-width: 1440px;      /* Trava na largura da linha vermelha */
+  margin: 0 auto;         /* Centraliza o menu no monitor */
+  padding: 14px 20px;     /* Recuo lateral idêntico aos painéis de baixo */
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
   gap: 16px; 
 }
 
-/* --- CORREÇÃO SÊNIOR: CONTENÇÃO E CONTROLE ALINHADO DO TICKER DE AVISOS --- */
+/* --- MURAL DE AVISOS (TICKER AMANRELO) --- */
 #mural-avisos-ticker {
-  max-width: 1440px;      /* Mesma trava de largura para alinhar com o painel */
-  margin: 0 auto !important; /* Força a centralização na tela */
+  max-width: 1440px;         /* Limita o tamanho idêntico à linha vermelha */
+  margin: 0 auto !important; /* Centraliza no meio da página */
   box-sizing: border-box;
-  
-  /* Modificações de borda para não parecer uma faixa infinita cortando a tela */
-  border-left: 1px solid #ffeeba;  /* Fecha o card na esquerda */
-  border-right: 1px solid #ffeeba; /* Fecha o card na direita */
-  border-radius: 0 0 8px 8px;      /* Arredonda levemente os cantos inferiores */
+  background: #fff3cd;
+  border-bottom: 1px solid #ffeeba;
+  border-left: 1px solid #ffeeba;  /* Fecha as bordas do card na esquerda */
+  border-right: 1px solid #ffeeba; /* Fecha as bordas do card na direita */
+  border-radius: 0 0 8px 8px;      /* Arredondamento elegante */
+}
+.ticker-inner-wrapper {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 12px 20px;        /* 20px de recuo alinha o texto e botão perfeitamente */
+  box-sizing: border-box;
 }
 
-/* Ajuste fino no container de texto interno do ticker se necessário */
-#mural-avisos-ticker .ticker-wrap {
-  padding: 0 20px; /* Garante que o texto em movimento respeite o limite da linha vermelha */
-}
-
-/* --- CORREÇÃO SÊNIOR: CONTENÇÃO CENTRALIZADA DA MAIN CONTENT --- */
+/* --- CONTENÇÃO CENTRALIZADA DO CONTEÚDO PRINCIPAL --- */
 .content { 
   max-width: 1440px; 
   margin: 0 auto; 
@@ -185,7 +185,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   gap: 10px;
 }
 
-/* --- CORREÇÃO SÊNIOR: BLOCO FIXO DE SOLICITAÇÕES DO TÉCNICO COM SCROLL INTERNO --- */
+/* --- BLOCO FIXO DE SOLICITAÇÕES DO TÉCNICO COM SCROLL INTERNO --- */
 .request-list { 
   display: grid; 
   gap: 12px; 
