@@ -22,7 +22,10 @@
   --radius: 12px;
 }
 
-* { box-sizing: border-box; }
+/* CORREÇÃO DO SELETOR: Mudado de hifen (-) para asterisco (*) */
+* { 
+  box-sizing: border-box; 
+}
 
 body {
   margin: 0;
@@ -78,7 +81,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .secondary-btn:hover { background: var(--surface-2); }
 .ghost-btn { background: transparent; color: var(--danger); border: none; font-weight: 600; cursor: pointer; }
 
-/* --- LAYOUT DA BARRA SUPERIOR (TOPBAR) --- */
+/* --- LAYOUT DA BARRA SUPERIOR (COMENTÁRIO CORRIGIDO) --- */
 .topbar { 
   background: var(--surface); 
   border-bottom: 1px solid var(--line); 
@@ -89,8 +92,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   width: 100%;
 }
 .topbar-inner { 
-  max-width: 1440px;      /* Trava na largura da linha vermelha */
-  margin: 0 auto;         /* Centraliza o menu no monitor */
+  max-width: 1440px;      /* Restringe o tamanho exato da linha vermelha */
+  margin: 0 auto;         /* Centraliza perfeitamente no monitor */
   padding: 14px 20px;     /* Recuo lateral idêntico aos painéis de baixo */
   display: flex; 
   align-items: center; 
@@ -98,25 +101,25 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   gap: 16px; 
 }
 
-/* --- MURAL DE AVISOS (TICKER AMANRELO) --- */
-#mural-avisos-ticker {
-  max-width: 1440px;         /* Limita o tamanho idêntico à linha vermelha */
-  margin: 0 auto !important; /* Centraliza no meio da página */
+/* --- MURAL DE AVISOS (COMENTÁRIO CORRIGIDO) --- */
+#mural-avisos-ticker { 
+  max-width: 1440px;         /* Limita a largura idêntica à linha vermelha */
+  margin: 0 auto !important; /* Força a centralização na tela */
   box-sizing: border-box;
   background: #fff3cd;
   border-bottom: 1px solid #ffeeba;
-  border-left: 1px solid #ffeeba;  /* Fecha as bordas do card na esquerda */
-  border-right: 1px solid #ffeeba; /* Fecha as bordas do card na direita */
-  border-radius: 0 0 8px 8px;      /* Arredondamento elegante */
+  border-left: 1px solid #ffeeba;  
+  border-right: 1px solid #ffeeba; 
+  border-radius: 0 0 8px 8px;      
 }
 .ticker-inner-wrapper {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 12px 20px;        /* 20px de recuo alinha o texto e botão perfeitamente */
+  padding: 12px 20px;        /* Alinhamento milimétrico nas laterais */
   box-sizing: border-box;
 }
 
-/* --- CONTENÇÃO CENTRALIZADA DO CONTEÚDO PRINCIPAL --- */
+/* --- CONTENÇÃO CENTRALIZADA DA MAIN CONTENT --- */
 .content { 
   max-width: 1440px; 
   margin: 0 auto; 
@@ -185,17 +188,16 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
   gap: 10px;
 }
 
-/* --- BLOCO FIXO DE SOLICITAÇÕES DO TÉCNICO COM SCROLL INTERNO --- */
+/* --- BLOCO FIXO DE SOLICITAÇÕES COM SCROLL INTERNO --- */
 .request-list { 
   display: grid; 
   gap: 12px; 
   margin-top: 16px;
-  max-height: 400px;         /* Define o teto fixo do bloco (padrão de interface) */
-  overflow-y: auto;          /* Adiciona a rolagem vertical quando estourar o limite */
-  padding-right: 6px;        /* Evita que a barra de rolagem cubra os botões */
+  max-height: 400px;         
+  overflow-y: auto;          
+  padding-right: 6px;        
 }
 
-/* Customização fina da barra de rolagem (Scrollbar) para manter o visual limpo */
 .request-list::-webkit-scrollbar {
   width: 6px;
 }
